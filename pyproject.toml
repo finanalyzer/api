@@ -1,6 +1,6 @@
 [project]
 name = "openbb-app"
-version = "0.1.3"
+version = "0.1.5"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -20,4 +20,10 @@ requires = ["uv_build>=0.9.7,<0.10.0"]
 build-backend = "uv_build"
 
 [project.scripts]
-openbb-tool = "openbb_app.main:start"
+openbb-app = "openbb_app.main:start"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

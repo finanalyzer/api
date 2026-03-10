@@ -2,6 +2,7 @@ import os
 from openbb_platform_api.main import app
 import logging
 from mysharelib.tools import setup_logger
+from openbb_app.routes.equity_cn import equity_cn_router
 
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
@@ -15,13 +16,20 @@ def start_api():
     subprocess.run([
         sys.executable, 
         "-m", "openbb_platform_api.main", 
+        "--host", "0.0.0.0",
+        "--port", "8001",
         "--app", Path(__file__).name  # 只使用文件名，不使用绝对路径
     ])
 
-@app.get("/health")
+@app.get("/api/v1/health")
 def health_check():
     """Health check endpoint for monitoring"""
     return {"status": "healthy"}
+
+app.include_router(
+    equity_cn_router,
+    prefix="/cn",
+)
 
 # 2. The CLI Entry Point
 def start():
@@ -30,14 +38,7 @@ def start():
     We point uvicorn to the string 'openbb_app.main:app' 
     so it can find the FastAPI instance.
     """
-    print("🚀 Starting OpenBB Backend on http://0.0.0.0:6900")
-    # uvicorn.run(
-    #     "openbb_app.main:app", 
-    #     host="0.0.0.0", 
-    #     port=8001, 
-    #     reload=False  # Set to False for production/tool use
-    # )
-    # 在需要启动的时候，使用 subprocess 启动
+    print("🚀 Starting OpenBB Backend on http://0.0.0.0:8001")
     start_api()
 
 if __name__ == "__main__":

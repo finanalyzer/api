@@ -28,7 +28,7 @@ def health_check():
 
 app.include_router(
     equity_cn_router,
-    prefix="/cn",
+    prefix="/api/v1/cn",
 )
 
 # 2. The CLI Entry Point

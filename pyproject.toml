@@ -1,6 +1,6 @@
 [project]
 name = "openbb-app"
-version = "0.2.0"
+version = "0.2.1
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -27,3 +27,8 @@ name = "testpypi"
 url = "https://test.pypi.org/simple/"
 publish-url = "https://test.pypi.org/legacy/"
 explicit = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

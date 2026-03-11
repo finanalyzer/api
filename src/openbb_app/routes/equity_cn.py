@@ -39,6 +39,10 @@ def get_historical_data(
     interval: str = Query("1d", description="时间间隔: 1d(日), 1w(周), 1m(月)")
 ):
     """获取指定股票的历史价格数据（日K线）"""
+    from mysharelib.tools import normalize_symbol
+
+    symbol_b, symbol_f, market = normalize_symbol(symbol)
+    symbol = symbol_f
     try:
         # 验证时间间隔
         valid_intervals = ['1d', '1w', '1m']

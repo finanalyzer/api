@@ -6,6 +6,53 @@ from openbb import obb
 
 logger = logging.getLogger(__name__)
 
+# placeholder global; actual function loaded when normalize_symbol_for_yfinance runs
+# allows tests to patch this attribute directly
+normalize_symbol = None
+
+def normalize_symbol_for_yfinance(symbol: str) -> str:
+    """
+    Convert stock symbols from the akshare format to the Yahoo Finance (yfinance) format
+    for China and Hong Kong stock markets.
+    """
+    global normalize_symbol
+
+    # avoid re-importing if someone (e.g. a test) has already set it
+    if normalize_symbol is None:
+        try:
+            from mysharelib.tools import normalize_symbol as _ns
+            # cache on module level for easier patching in tests
+            normalize_symbol = _ns
+        except ImportError:
+            logger.warning("mysharelib.tools.normalize_symbol not found. Returning original symbol.")
+            return symbol
+
+    try:
+        symbol_b, symbol_f, market = normalize_symbol(symbol)
+    except Exception as e:
+        logger.warning(f"Error normalizing symbol {symbol}: {e}")
+        return symbol
+
+    if not symbol_f or '.' not in symbol_f:
+        return symbol_f if symbol_f else symbol
+
+    parts = symbol_f.split('.')
+    if len(parts) != 2:
+        return symbol_f
+
+    prefix, suffix = parts[0], parts[1]
+
+    if suffix == "SH":
+        return f"{prefix}.SS"
+    elif suffix == "HK":
+        if len(prefix) == 5:
+            return f"{prefix[1:]}.HK"
+        return symbol_f
+    elif suffix in ["SZ", "BJ"]:
+        return symbol_f
+    else:
+        return symbol_f
+
 class DataSource(ABC):
     """数据源基类"""
     
@@ -79,14 +126,16 @@ class YFinanceDataSource(DataSource):
     def get_historical_data(self, symbol: str, start_date: str, end_date: str, interval: str = '1d') -> List[Dict]:
         """从 YFinance 获取历史数据"""
         try:
-            logger.info(f"Fetching data from YFinance for {symbol}")
+            # 转换股票代码为 YFinance 格式
+            yf_symbol = normalize_symbol_for_yfinance(symbol)
+            logger.info(f"Fetching data from YFinance for {yf_symbol} (original: {symbol})")
             
             # 转换时间间隔
             obb_interval = self._convert_interval(interval)
             
             # 使用 OpenBB 的 YFinance 提供商获取数据
             result = obb.equity.price.historical(
-                symbol=symbol,
+                symbol=yf_symbol,
                 start_date=start_date,
                 end_date=end_date,
                 interval=obb_interval,
@@ -197,11 +246,11 @@ class DataSourceManager:
     def __init__(self):
         """初始化数据源管理器"""
         self.data_sources = {
-            'akshare': AkShareDataSource(),
+            'tushare': TushareDataSource(),
             'yfinance': YFinanceDataSource(),
-            'tushare': TushareDataSource()
+            'akshare': AkShareDataSource()
         }
-        self.priority_order = ['akshare', 'yfinance', 'tushare']
+        self.priority_order = ['tushare', 'yfinance', 'akshare']
     
     def get_data(self, symbol: str, start_date: str, end_date: str, interval: str = '1d') -> tuple[List[Dict], str]:
         """获取数据，按优先级尝试不同的数据源"""

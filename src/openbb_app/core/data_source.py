@@ -246,11 +246,11 @@ class DataSourceManager:
     def __init__(self):
         """初始化数据源管理器"""
         self.data_sources = {
-            'tushare': TushareDataSource(),
+            'akshare': TushareDataSource(),
             'yfinance': YFinanceDataSource(),
-            'akshare': AkShareDataSource()
+            'tushare': AkShareDataSource()
         }
-        self.priority_order = ['tushare', 'yfinance', 'akshare']
+        self.priority_order = ['akshare', 'yfinance', 'tushare']
     
     def get_data(self, symbol: str, start_date: str, end_date: str, interval: str = '1d') -> tuple[List[Dict], str]:
         """获取数据，按优先级尝试不同的数据源"""

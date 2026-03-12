@@ -3,6 +3,7 @@ from openbb_platform_api.main import app
 import logging
 from mysharelib.tools import setup_logger
 from openbb_app.routes.equity_cn import equity_cn_router
+from openbb_app.routes.portfolio import portfolio_router
 
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
@@ -29,6 +30,11 @@ def health_check():
 app.include_router(
     equity_cn_router,
     prefix="/api/v1/cn",
+)
+
+app.include_router(
+    portfolio_router,
+    prefix="/api/v1",
 )
 
 # 2. The CLI Entry Point

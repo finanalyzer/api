@@ -84,9 +84,22 @@ class EquityDataUpdater:
     
     def get_list_date(self, symbol: str) -> str:
         """获取股票的上市日期"""
-        # 这里可以从元数据表或其他数据源获取上市日期
-        # 暂时使用默认值
-        return "2000-01-01"
+        default_date = "2000-01-01"
+        
+        try:
+            metadata = self.db_manager.get_equity_metadata(symbol)
+            
+            if metadata and metadata.get('list_date'):
+                list_date = metadata['list_date']
+                if list_date and list_date.strip():
+                    logger.debug(f"从 equity_metadata 表获取到股票 {symbol} 的上市日期: {list_date}")
+                    return list_date
+            
+            logger.debug(f"股票 {symbol} 在 equity_metadata 表中无有效的 list_date 或记录不存在，使用默认值: {default_date}")
+            return default_date
+        except Exception as e:
+            logger.warning(f"获取股票 {symbol} 的上市日期时发生异常: {e}，使用默认值: {default_date}")
+            return default_date
     
     def update_stock_data(self, symbol: str) -> bool:
         """更新单个股票的数据"""
@@ -180,6 +193,26 @@ class EquityDataUpdater:
         print(f"完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
+    import os
+    from openbb import obb
+
+    if 'info' in obb.reference:
+        obj = obb.reference["info"]["extensions"]["openbb_provider_extension"]
+        print([item for item in obj if "akshare" in item])
+        print([item for item in obj if "tushare" in item])
+
+    akshare_api_key = obb.user.credentials.akshare_api_key.get_secret_value()
+    if akshare_api_key is None:
+        raise ValueError("AKSHARE_API_KEY environment variable not set.")
+    else:
+        os.environ["AKSHARE_API_KEY"] = akshare_api_key
+
+    tushare_api_key = obb.user.credentials.tushare_api_key.get_secret_value()
+    if tushare_api_key is None:
+        raise ValueError("TUSHARE_API_KEY environment variable not set.")
+    else:
+        os.environ["TUSHARE_API_KEY"] = tushare_api_key
+
     # 解析命令行参数
     parser = argparse.ArgumentParser(description='股票历史数据增量更新脚本')
     parser.add_argument('--config', type=Path, help='配置文件路径')

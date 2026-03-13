@@ -44,6 +44,26 @@ def start():
     We point uvicorn to the string 'openbb_app.main:app' 
     so it can find the FastAPI instance.
     """
+    import os
+    from openbb import obb
+
+    if 'info' in obb.reference:
+        obj = obb.reference["info"]["extensions"]["openbb_provider_extension"]
+        print([item for item in obj if "akshare" in item])
+        print([item for item in obj if "tushare" in item])
+
+    akshare_api_key = obb.user.credentials.akshare_api_key.get_secret_value()
+    if akshare_api_key is None:
+        raise ValueError("AKSHARE_API_KEY environment variable not set.")
+    else:
+        os.environ["AKSHARE_API_KEY"] = akshare_api_key
+
+    tushare_api_key = obb.user.credentials.tushare_api_key.get_secret_value()
+    if tushare_api_key is None:
+        raise ValueError("TUSHARE_API_KEY environment variable not set.")
+    else:
+        os.environ["TUSHARE_API_KEY"] = tushare_api_key
+
     print("🚀 Starting OpenBB Backend on http://0.0.0.0:8001")
     start_api()
 

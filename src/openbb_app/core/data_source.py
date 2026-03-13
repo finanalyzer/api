@@ -246,9 +246,9 @@ class DataSourceManager:
     def __init__(self):
         """初始化数据源管理器"""
         self.data_sources = {
-            'akshare': TushareDataSource(),
+            'akshare': AkShareDataSource(),
             'yfinance': YFinanceDataSource(),
-            'tushare': AkShareDataSource()
+            'tushare': TushareDataSource()
         }
         self.priority_order = ['akshare', 'yfinance', 'tushare']
     

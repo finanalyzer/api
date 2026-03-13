@@ -6,6 +6,7 @@ import logging
 from pydantic import BaseModel, Field
 from openbb_core.app.service.user_service import UserService
 from openbb_app.core.database import DatabaseManager
+from openbb import obb
 
 logger = logging.getLogger(__name__)
 
@@ -121,15 +122,68 @@ def create_stock(stock: StockCreate):
     try:
         db_manager = get_db_manager()
         stock_data = stock.model_dump()
-        # 设置默认值
         stock_data.setdefault('avg_cost', 0)
         stock_data.setdefault('quantity', 0)
         stock_data.setdefault('total_value', 0)
+        
+        try:
+            logger.info(f"Fetching equity profile for {stock.symbol} from AkShare")
+            profile_data = obb.equity.profile(
+                symbol=stock.symbol,
+                provider='akshare',
+                use_cache=True
+            )
+            
+            logger.info(f"Converting profile data to DataFrame for {stock.symbol}")
+            df = profile_data.to_dataframe()
+            
+            if not df.empty:
+                logger.info(f"Extracting listing date from profile data for {stock.symbol}")
+                latest_record = df.tail(1)
+                
+                list_date = None
+                if '上市日期' in latest_record.columns:
+                    list_date_value = latest_record['上市日期'].iloc[0]
+                    if list_date_value:
+                        list_date = str(list_date_value)
+                        logger.info(f"Found listing date for {stock.symbol}: {list_date}")
+                
+                if list_date:
+                    existing_metadata = db_manager.get_equity_metadata(stock.symbol)
+                    metadata = {
+                        'symbol': stock.symbol,
+                        'name': stock.name,
+                        'list_date': list_date
+                    }
+                    
+                    if existing_metadata:
+                        logger.info(f"Updating equity metadata for {stock.symbol}")
+                        db_manager.update_equity_metadata(stock.symbol, {'list_date': list_date})
+                    else:
+                        logger.info(f"Creating new equity metadata for {stock.symbol}")
+                        db_manager.add_equity_metadata(metadata)
+                    
+                    updated_metadata = db_manager.get_equity_metadata(stock.symbol)
+                    if updated_metadata and updated_metadata.get('list_date') == list_date:
+                        logger.info(f"Successfully verified listing date for {stock.symbol}: {list_date}")
+                    else:
+                        logger.warning(f"Failed to verify listing date for {stock.symbol}")
+                else:
+                    logger.warning(f"No listing date found in profile data for {stock.symbol}")
+            else:
+                logger.warning(f"Empty profile data returned for {stock.symbol}")
+                
+        except Exception as api_error:
+            logger.error(f"Error fetching equity profile for {stock.symbol}: {api_error}")
+            logger.info(f"Proceeding with stock creation without listing date for {stock.symbol}")
+        
         db_manager.add_portfolio_stock(stock_data)
         created_stock = db_manager.get_portfolio_stock(stock.symbol)
         if not created_stock:
             raise HTTPException(status_code=500, detail="Failed to create stock")
         return created_stock
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating stock: {e}")
         raise HTTPException(status_code=500, detail="Failed to create stock")

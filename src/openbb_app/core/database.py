@@ -225,6 +225,89 @@ class DatabaseManager:
         conn.close()
         return result
     
+    def get_equity_metadata(self, symbol: str):
+        """获取股票元数据"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM equity_metadata WHERE symbol = ?", (symbol,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+    
+    def add_equity_metadata(self, metadata: dict):
+        """添加或更新股票元数据"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        
+        now = datetime.now().isoformat()
+        
+        sql = """
+        INSERT INTO equity_metadata 
+            (symbol, name, market, list_date, last_fetched, updated_at)
+        VALUES 
+            (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(symbol) DO UPDATE SET
+            name = excluded.name,
+            market = excluded.market,
+            list_date = excluded.list_date,
+            last_fetched = excluded.last_fetched,
+            updated_at = excluded.updated_at
+        """
+        
+        try:
+            cursor.execute(sql, (
+                metadata['symbol'],
+                metadata.get('name'),
+                metadata.get('market'),
+                metadata.get('list_date'),
+                metadata.get('last_fetched', now),
+                now
+            ))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error adding equity metadata: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    
+    def update_equity_metadata(self, symbol: str, metadata: dict):
+        """更新股票元数据"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        
+        now = datetime.now().isoformat()
+        
+        set_clauses = []
+        params = []
+        
+        for key, value in metadata.items():
+            if key != 'symbol':
+                set_clauses.append(f"{key} = ?")
+                params.append(value)
+        
+        if set_clauses:
+            set_clauses.append("updated_at = ?")
+            params.append(now)
+            params.append(symbol)
+            
+            sql = f"UPDATE equity_metadata SET {', '.join(set_clauses)} WHERE symbol = ?"
+            
+            try:
+                cursor.execute(sql, params)
+                conn.commit()
+                return cursor.rowcount > 0
+            except Exception as e:
+                logger.error(f"Error updating equity metadata: {e}")
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+        return False
+    
     def maintenance(self):
         """数据库维护任务"""
         conn = sqlite3.connect(self.db_path)

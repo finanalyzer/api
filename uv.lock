@@ -175,18 +175,17 @@ wheels = [
 
 [[package]]
 name = "akshare"
-version = "1.17.39"
+version = "1.18.19"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "aiohttp" },
     { name = "akracer", marker = "sys_platform == 'linux'" },
     { name = "beautifulsoup4" },
+    { name = "curl-cffi" },
     { name = "decorator" },
     { name = "html5lib" },
     { name = "jsonpath" },
     { name = "lxml" },
     { name = "mini-racer", marker = "sys_platform != 'linux'" },
-    { name = "nest-asyncio" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "py-mini-racer", marker = "sys_platform == 'linux'" },
@@ -196,9 +195,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "xlrd" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/57/eb/412144216a45a68312c126cc65200f7656f57b2cf9e4671889fd615dc6f7/akshare-1.17.39.tar.gz", hash = "sha256:7fbff41f3f3c494b18c1280a7326d42178e6a492712d0306e9755942aff8af04", size = 841931, upload-time = "2025-08-21T15:11:04.33Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/cf/73b906118164af1efbd1bd4a675afc9c8de28ebade030e9a5b57118525c5/akshare-1.18.19.tar.gz", hash = "sha256:3d5717204e31d0e46896a37a668b77f3e171ff0295a82d985dc09b87d909b50b", size = 855130, upload-time = "2026-01-20T11:20:28.99Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/8a/23bb04a435543bd9766c3568961439f522b48c56f8efd5a2105dbb63abd4/akshare-1.17.39-py3-none-any.whl", hash = "sha256:cb1d9ee7464570f189063e4f43366068538fb3571126de8cd5102937246dd5bf", size = 1056620, upload-time = "2025-08-21T15:11:02.611Z" },
+    { url = "https://files.pythonhosted.org/packages/79/ba/42defeecc3fae7fd5369bc97f9b4ca25d04b5daa6a64eb84a732006abf90/akshare-1.18.19-py3-none-any.whl", hash = "sha256:b2fc419c65b7d3e348fa309e1e88f13cc252c533d63f6667218c76e2be06ee7d", size = 1074834, upload-time = "2026-01-20T11:20:27.668Z" },
 ]
 
 [[package]]
@@ -1124,15 +1123,6 @@ wheels = [
 ]
 
 [[package]]
-name = "nest-asyncio"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/83/f8/51569ac65d696c8ecbee95938f89d4abf00f47d58d48f6fbabfe8f0baefe/nest_asyncio-1.6.0.tar.gz", hash = "sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe", size = 7418, upload-time = "2024-01-21T14:25:19.227Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/c4/c2971a3ba4c6103a3d10c4b0f24f461ddc027f0f09763220cf35ca1401b3/nest_asyncio-1.6.0-py3-none-any.whl", hash = "sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c", size = 5195, upload-time = "2024-01-21T14:25:17.223Z" },
-]
-
-[[package]]
 name = "numpy"
 version = "2.4.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1213,7 +1203,7 @@ wheels = [
 
 [[package]]
 name = "openbb"
-version = "4.7.0"
+version = "4.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openbb-benzinga" },
@@ -1240,6 +1230,7 @@ dependencies = [
     { name = "openbb-news" },
     { name = "openbb-oecd" },
     { name = "openbb-platform-api" },
+    { name = "openbb-polygon" },
     { name = "openbb-regulators" },
     { name = "openbb-sec" },
     { name = "openbb-tiingo" },
@@ -1247,29 +1238,31 @@ dependencies = [
     { name = "openbb-us-eia" },
     { name = "openbb-yfinance" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/09/ee/b0382725dfa4775ceff0e49b693e2af1cc96eba0e35329dbf8fab24d0b4a/openbb-4.7.0.tar.gz", hash = "sha256:25167d7bdb8913a7ef2bc94473d827c5fed41fa8559b0e58fab161f068549da0", size = 5699, upload-time = "2026-03-05T03:17:35.474Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/3d/b1e511d8435d4850e65e09a55816610671d1282e0b19634d77705e38c3b6/openbb-4.6.0.tar.gz", hash = "sha256:a05ab7e21796d928850dbfec3d55c435f0c09ebe4486686ab5dec2275bbff350", size = 5705, upload-time = "2026-01-02T22:52:39.748Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/85/9c/5eb998d27c1be1b6251c67442418b49e83317b1d4c75a9c792f02f75ab90/openbb-4.7.0-py3-none-any.whl", hash = "sha256:203bc6375a4e8aaca68389d836e85fa47b9a741b7afb0359568ee54fc02f66b9", size = 5975, upload-time = "2026-03-05T03:17:37.356Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/fc/0749bf9bd7cf777867e785d018ed7ee90060496088609764f6f741cac5d5/openbb-4.6.0-py3-none-any.whl", hash = "sha256:ca822999dfd191dd033c4db2c51b3dc633ab4f10f2bf417db09e343c35b92ee3", size = 5979, upload-time = "2026-01-02T22:52:38.689Z" },
 ]
 
 [[package]]
 name = "openbb-akshare"
-version = "1.0.5"
+version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "akshare" },
     { name = "ipywidgets" },
     { name = "mysharelib" },
+    { name = "openbb" },
     { name = "openbb-core" },
+    { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/17/ea/4f312b96aac7eb639112d3872bb81ad243552404c5177f59c9b39f5c29dc/openbb_akshare-1.0.5.tar.gz", hash = "sha256:98f056a488dda272192f74891de8d995377ec74da5dadb3d6f62dc66b012de37", size = 33614, upload-time = "2025-10-07T15:04:01.499Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/45/f67e280d1f477eeaf85c7dd54dd51f3c88ccce69bcb513834c1ecb9490ee/openbb_akshare-1.1.2.tar.gz", hash = "sha256:74884d01aee559ea88b48232444c7c91ed9d68bcba92060e1c9e5dd398b67e0b", size = 44617, upload-time = "2026-03-13T02:07:21.939Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/28/64307c9123bfb333e291404feeb2463c9eb435a7b4e6976107492431a513/openbb_akshare-1.0.5-py3-none-any.whl", hash = "sha256:9cfe4f0e82346d1bd978ef0cffc577137fc4cc2a8026b19bc2ee0197608f4b96", size = 55707, upload-time = "2025-10-07T15:03:59.557Z" },
+    { url = "https://files.pythonhosted.org/packages/44/55/9bc5ca83c2d5d804ca670b23ad074f86dff994ce61bd2df6fe39e70d2513/openbb_akshare-1.1.2-py3-none-any.whl", hash = "sha256:fd686ed3da7196cd119b76a3740cae4999cf2a6aefc9c83e4dd48bc912207efb", size = 72246, upload-time = "2026-03-13T02:07:20.645Z" },
 ]
 
 [[package]]
 name = "openbb-app"
-version = "0.4.0"
+version = "0.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "mysharelib" },
@@ -1287,8 +1280,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mysharelib", specifier = ">=1.0.4" },
-    { name = "openbb", specifier = ">=4.7.0" },
-    { name = "openbb-akshare", specifier = ">=1.0.5" },
+    { name = "openbb", specifier = ">=4.6.0" },
+    { name = "openbb-akshare", specifier = ">=1.1.2" },
     { name = "openbb-tushare", specifier = ">=1.0.0" },
     { name = "uvicorn", specifier = ">=0.40.0" },
 ]
@@ -1610,6 +1603,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e4/50/4f9a046ef5e8e64e24c3bfed54fc94c52d3b133aa023683b0182426e06f0/openbb_platform_api-1.3.2.tar.gz", hash = "sha256:8e8fbc6e264126cfc3ef3701f4f43463270b78adc38b25e28849d8e4a1959119", size = 44239, upload-time = "2026-03-07T05:01:50.583Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/66/ce05403fa5d0b5f25fdcd3459de915046cf71e8a22edce9380792f9787f0/openbb_platform_api-1.3.2-py3-none-any.whl", hash = "sha256:7149ba6c34ee0b1aeec50deaeead74f750450fef3aa928f56010c9abc12ca666", size = 43509, upload-time = "2026-03-07T05:01:51.706Z" },
+]
+
+[[package]]
+name = "openbb-polygon"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "openbb-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/ca/261b7d34f6e2c99b7237b889317a91aa51eea6ccb2d032632a415cfba034/openbb_polygon-1.5.1.tar.gz", hash = "sha256:628944118402604cebbd7b3a53ecddcad1e179578f178ad348945598a2f43a7c", size = 16439, upload-time = "2025-12-30T00:09:05.827Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/30/8c2128db05fc85ea47df50198e27e6d836868a211c9d1f18dd99808ea75e/openbb_polygon-1.5.1-py3-none-any.whl", hash = "sha256:14f610455610ae11d917f317f7c6953b3e32cae91672f56b29edb9ed71aec0ee", size = 31822, upload-time = "2025-12-30T00:09:04.851Z" },
 ]
 
 [[package]]

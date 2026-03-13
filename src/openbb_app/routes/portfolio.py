@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from openbb_core.app.service.user_service import UserService
 from openbb_app.core.database import DatabaseManager
 from openbb import obb
+from mysharelib.tools import normalize_symbol
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,8 @@ def get_all_stocks():
 def get_stock(symbol: str = FastAPIPath(..., description="股票代码")):
     """获取单个自选股"""
     try:
+        symbol_b, symbol_f, market = normalize_symbol(symbol)
+        symbol = symbol_f
         db_manager = get_db_manager()
         stock = db_manager.get_portfolio_stock(symbol)
         if not stock:
@@ -120,6 +123,8 @@ def get_stock(symbol: str = FastAPIPath(..., description="股票代码")):
 def create_stock(stock: StockCreate):
     """创建新的自选股"""
     try:
+        symbol_b, symbol_f, market = normalize_symbol(stock.symbol)
+        stock.symbol = symbol_f
         db_manager = get_db_manager()
         stock_data = stock.model_dump()
         stock_data.setdefault('avg_cost', 0)
@@ -192,6 +197,8 @@ def create_stock(stock: StockCreate):
 def update_stock(stock: StockUpdate, symbol: str = FastAPIPath(..., description="股票代码")):
     """更新自选股信息"""
     try:
+        symbol_b, symbol_f, market = normalize_symbol(symbol)
+        symbol = symbol_f
         db_manager = get_db_manager()
         existing_stock = db_manager.get_portfolio_stock(symbol)
         if not existing_stock:
@@ -213,6 +220,8 @@ def update_stock(stock: StockUpdate, symbol: str = FastAPIPath(..., description=
 def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
     """删除自选股"""
     try:
+        symbol_b, symbol_f, market = normalize_symbol(symbol)
+        symbol = symbol_f
         db_manager = get_db_manager()
         success = db_manager.delete_portfolio_stock(symbol)
         if not success:
@@ -233,6 +242,9 @@ def get_all_transactions(
 ):
     """获取交易记录"""
     try:
+        if symbol:
+            symbol_b, symbol_f, market = normalize_symbol(symbol)
+            symbol = symbol_f
         db_manager = get_db_manager()
         transactions = db_manager.get_all_transactions(symbol, start_date, end_date)
         return transactions
@@ -259,6 +271,8 @@ def get_transaction(transaction_id: int = FastAPIPath(..., description="交易�
 def create_transaction(transaction: TransactionCreate):
     """创建新的交易记录"""
     try:
+        symbol_b, symbol_f, market = normalize_symbol(transaction.symbol)
+        transaction.symbol = symbol_f
         db_manager = get_db_manager()
         # 验证股票是否存在
         stock = db_manager.get_portfolio_stock(transaction.symbol)
@@ -298,6 +312,9 @@ def update_transaction(transaction: TransactionUpdate, transaction_id: int = Fas
             raise HTTPException(status_code=404, detail="Transaction not found")
         
         transaction_data = transaction.model_dump(exclude_unset=True)
+        if 'symbol' in transaction_data:
+            symbol_b, symbol_f, market = normalize_symbol(transaction_data['symbol'])
+            transaction_data['symbol'] = symbol_f
         success = db_manager.update_transaction(transaction_id, transaction_data)
         if not success:
             raise HTTPException(status_code=404, detail="Transaction not found")

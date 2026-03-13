@@ -193,25 +193,9 @@ class EquityDataUpdater:
         print(f"完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
-    import os
-    from openbb import obb
+    from openbb_app.core.utils import check_api_keys
 
-    if 'info' in obb.reference:
-        obj = obb.reference["info"]["extensions"]["openbb_provider_extension"]
-        print([item for item in obj if "akshare" in item])
-        print([item for item in obj if "tushare" in item])
-
-    akshare_api_key = obb.user.credentials.akshare_api_key.get_secret_value()
-    if akshare_api_key is None:
-        raise ValueError("AKSHARE_API_KEY environment variable not set.")
-    else:
-        os.environ["AKSHARE_API_KEY"] = akshare_api_key
-
-    tushare_api_key = obb.user.credentials.tushare_api_key.get_secret_value()
-    if tushare_api_key is None:
-        raise ValueError("TUSHARE_API_KEY environment variable not set.")
-    else:
-        os.environ["TUSHARE_API_KEY"] = tushare_api_key
+    check_api_keys()
 
     # 解析命令行参数
     parser = argparse.ArgumentParser(description='股票历史数据增量更新脚本')

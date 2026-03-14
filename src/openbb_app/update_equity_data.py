@@ -192,7 +192,8 @@ class EquityDataUpdater:
         print(f"执行时间: {round(duration, 2)} 秒")
         print(f"完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-if __name__ == "__main__":
+# 2. The CLI Entry Point
+def start():
     from openbb_app.core.utils import check_api_keys
 
     check_api_keys()
@@ -215,3 +216,7 @@ if __name__ == "__main__":
     
     # 运行更新
     updater.run()
+
+
+if __name__ == "__main__":
+    start()

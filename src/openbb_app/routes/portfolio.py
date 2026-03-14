@@ -70,6 +70,7 @@ class TransactionBase(BaseModel):
     price: float = Field(..., gt=0, description="成交价格")
     quantity: int = Field(..., gt=0, description="成交数量")
     transaction_type: str = Field(..., description="交易类型")
+    total_value: Optional[float] = Field(None, ge=0, description="交易总额（含手续费）")
 
 class TransactionCreate(TransactionBase):
     pass
@@ -81,9 +82,13 @@ class TransactionUpdate(BaseModel):
     price: Optional[float] = Field(None, gt=0, description="成交价格")
     quantity: Optional[int] = Field(None, gt=0, description="成交数量")
     transaction_type: Optional[str] = Field(None, description="交易类型")
+    total_value: Optional[float] = Field(None, ge=0, description="交易总额（含手续费）")
 
 class TransactionResponse(TransactionBase):
     id: int = Field(..., description="交易记录ID")
+    base_value: float = Field(..., description="基础价值（价格×数量）")
+    transaction_fee: float = Field(..., description="交易手续费")
+    total_value: float = Field(..., description="交易总额（含手续费）")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
     
@@ -288,7 +293,8 @@ def create_transaction(transaction: TransactionCreate):
             }
             db_manager.add_portfolio_stock(stock_data)
         
-        transaction_data = transaction.model_dump()
+        # 使用 model_dump(exclude_none=False) 确保包含所有字段，包括 None 值
+        transaction_data = transaction.model_dump(exclude_none=False)
         db_manager.add_transaction(transaction_data)
         
         # 获取最新的交易记录（由于没有返回ID，需要查询）

@@ -96,6 +96,9 @@ class DatabaseManager:
             price REAL NOT NULL,
             quantity INTEGER NOT NULL,
             transaction_type TEXT NOT NULL,
+            base_value REAL NOT NULL DEFAULT 0,
+            transaction_fee REAL NOT NULL DEFAULT 0,
+            total_value REAL NOT NULL DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (symbol) REFERENCES portfolio_stocks(symbol) ON DELETE CASCADE
@@ -106,11 +109,34 @@ class DatabaseManager:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_symbol ON transactions(symbol)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)')
         
+        # 迁移：为现有数据库添加新列
+        self._migrate_transactions_table(cursor)
+        
         # 应用优化配置
         self._apply_optimizations(conn)
         
         conn.commit()
         conn.close()
+    
+    def _migrate_transactions_table(self, cursor):
+        """迁移交易记录表，添加新列"""
+        try:
+            cursor.execute("PRAGMA table_info(transactions)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'base_value' not in columns:
+                cursor.execute("ALTER TABLE transactions ADD COLUMN base_value REAL NOT NULL DEFAULT 0")
+                logger.info("Added base_value column to transactions table")
+            
+            if 'transaction_fee' not in columns:
+                cursor.execute("ALTER TABLE transactions ADD COLUMN transaction_fee REAL NOT NULL DEFAULT 0")
+                logger.info("Added transaction_fee column to transactions table")
+            
+            if 'total_value' not in columns:
+                cursor.execute("ALTER TABLE transactions ADD COLUMN total_value REAL NOT NULL DEFAULT 0")
+                logger.info("Added total_value column to transactions table")
+        except Exception as e:
+            logger.warning(f"Migration warning: {e}")
     
     def _apply_optimizations(self, conn):
         """应用数据库优化配置"""
@@ -501,6 +527,32 @@ class DatabaseManager:
         now = datetime.now().isoformat()
         
         try:
+            # 验证数值输入
+            price = float(transaction_data['price'])
+            quantity = int(transaction_data['quantity'])
+            
+            if price <= 0:
+                raise ValueError("价格必须大于0")
+            if quantity <= 0:
+                raise ValueError("数量必须大于0")
+            
+            # 计算基础价值（价格 × 数量）
+            base_value = price * quantity
+            
+            # 处理交易手续费和总额
+            if 'total_value' in transaction_data and transaction_data['total_value'] is not None:
+                total_value = float(transaction_data['total_value'])
+                if total_value <= 0:
+                    raise ValueError("交易总额必须大于0")
+                # 计算交易手续费 = 提供的总额 - 基础价值
+                # 买入: total_value = base_value + fee (fee为正)
+                # 卖出: total_value = base_value - fee (fee为负)
+                transaction_fee = total_value - base_value
+            else:
+                # 如果未提供总额，手续费为0，总额等于基础价值
+                transaction_fee = 0.0
+                total_value = base_value
+            
             # 开始事务
             conn.execute('BEGIN TRANSACTION')
             
@@ -517,18 +569,21 @@ class DatabaseManager:
             # 插入交易记录
             sql = """
             INSERT INTO transactions 
-                (date, symbol, name, price, quantity, transaction_type, updated_at)
+                (date, symbol, name, price, quantity, transaction_type, base_value, transaction_fee, total_value, updated_at)
             VALUES 
-                (?, ?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             
             cursor.execute(sql, (
                 transaction_data['date'],
                 transaction_data['symbol'],
                 transaction_data['name'],
-                transaction_data['price'],
-                transaction_data['quantity'],
+                price,
+                quantity,
                 transaction_data['transaction_type'],
+                base_value,
+                transaction_fee,
+                total_value,
                 now
             ))
             
@@ -558,17 +613,50 @@ class DatabaseManager:
         
         try:
             # 获取原交易记录以确定股票代码和类型
-            cursor.execute("SELECT symbol, transaction_type, quantity FROM transactions WHERE id = ?", (transaction_id,))
+            cursor.execute("SELECT symbol, transaction_type, quantity, price, base_value, transaction_fee, total_value FROM transactions WHERE id = ?", (transaction_id,))
             old_transaction = cursor.fetchone()
             if not old_transaction:
                 return False
             
-            old_symbol, old_type, old_quantity = old_transaction
+            old_symbol, old_type, old_quantity, old_price, old_base_value, old_transaction_fee, old_total_value = old_transaction
             
             # 确定新的交易类型和数量
             new_type = transaction_data.get('transaction_type', old_type)
             new_quantity = transaction_data.get('quantity', old_quantity)
             new_symbol = transaction_data.get('symbol', old_symbol)
+            new_price = transaction_data.get('price', old_price)
+            
+            # 验证数值输入
+            if 'price' in transaction_data:
+                new_price = float(transaction_data['price'])
+                if new_price <= 0:
+                    raise ValueError("价格必须大于0")
+            
+            if 'quantity' in transaction_data:
+                new_quantity = int(transaction_data['quantity'])
+                if new_quantity <= 0:
+                    raise ValueError("数量必须大于0")
+            
+            # 计算新的基础价值
+            new_base_value = new_price * new_quantity
+            
+            # 处理交易手续费和总额
+            if 'total_value' in transaction_data and transaction_data['total_value'] is not None:
+                new_total_value = float(transaction_data['total_value'])
+                if new_total_value < 0:
+                    raise ValueError("交易总额不能为负数")
+                # 计算交易手续费 = 提供的总额 - 基础价值
+                new_transaction_fee = new_total_value - new_base_value
+            else:
+                # 如果未提供总额，保持原有的手续费和总额关系，或重新计算
+                if 'price' in transaction_data or 'quantity' in transaction_data:
+                    # 如果价格或数量改变，但未提供总额，则手续费为0，总额等于基础价值
+                    new_transaction_fee = 0.0
+                    new_total_value = new_base_value
+                else:
+                    # 保持原有值
+                    new_transaction_fee = old_transaction_fee
+                    new_total_value = old_total_value
             
             # 开始事务
             conn.execute('BEGIN TRANSACTION')
@@ -591,9 +679,13 @@ class DatabaseManager:
             params = []
             
             for key, value in transaction_data.items():
-                if key != 'id':
+                if key != 'id' and key != 'total_value':
                     set_clauses.append(f"{key} = ?")
                     params.append(value)
+            
+            # 总是更新计算字段
+            set_clauses.extend(['base_value = ?', 'transaction_fee = ?', 'total_value = ?'])
+            params.extend([new_base_value, new_transaction_fee, new_total_value])
             
             set_clauses.append("updated_at = ?")
             params.append(now)
@@ -662,7 +754,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         # 获取所有交易记录
-        cursor.execute("SELECT price, quantity, transaction_type FROM transactions WHERE symbol = ? ORDER BY date", (symbol,))
+        cursor.execute("SELECT price, quantity, transaction_type, total_value FROM transactions WHERE symbol = ? ORDER BY date", (symbol,))
         transactions = cursor.fetchall()
         
         # 计算持仓数据
@@ -670,9 +762,10 @@ class DatabaseManager:
         total_buy_quantity = 0
         total_sell_quantity = 0
         
-        for price, quantity, transaction_type in transactions:
+        for price, quantity, transaction_type, total_value in transactions:
             if transaction_type == '买入':
-                total_buy_cost += price * quantity
+                # 使用总额（含手续费）作为买入成本
+                total_buy_cost += total_value
                 total_buy_quantity += quantity
             elif transaction_type == '卖出':
                 total_sell_quantity += quantity
@@ -680,7 +773,8 @@ class DatabaseManager:
         # 计算当前持有数量
         current_quantity = total_buy_quantity - total_sell_quantity
         
-        # 计算持仓均价（基于买入成本）
+        # 计算持仓均价（基于买入总额，包含手续费）
+        # 平均成本保持不变，不受卖出交易影响
         avg_cost = total_buy_cost / total_buy_quantity if total_buy_quantity > 0 else 0
         
         # 计算市值
@@ -711,12 +805,13 @@ class DatabaseManager:
                 total_buy_quantity = 0
                 total_sell_quantity = 0
                 
-                cursor.execute("SELECT price, quantity, transaction_type FROM transactions WHERE symbol = ? ORDER BY date", (symbol,))
+                cursor.execute("SELECT price, quantity, transaction_type, total_value FROM transactions WHERE symbol = ? ORDER BY date", (symbol,))
                 transactions = cursor.fetchall()
                 
-                for price, quantity, transaction_type in transactions:
+                for price, quantity, transaction_type, total_value in transactions:
                     if transaction_type == '买入':
-                        total_buy_cost += price * quantity
+                        # 使用总额（含手续费）作为买入成本
+                        total_buy_cost += total_value
                         total_buy_quantity += quantity
                     elif transaction_type == '卖出':
                         total_sell_quantity += quantity
@@ -724,7 +819,8 @@ class DatabaseManager:
                 # 计算当前持有数量
                 calc_quantity = total_buy_quantity - total_sell_quantity
                 
-                # 计算持仓均价（基于买入成本）
+                # 计算持仓均价（基于买入总额，包含手续费）
+                # 平均成本保持不变，不受卖出交易影响
                 calc_avg_cost = total_buy_cost / total_buy_quantity if total_buy_quantity > 0 else 0
                 
                 # 计算市值

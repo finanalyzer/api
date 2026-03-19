@@ -384,6 +384,201 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
         raise HTTPException(status_code=500, detail="Failed to delete stock")
 
 # 交易记录管理API
+@register_widget({
+    "name": "交易记录管理",
+    "display_name": "Portfolio Transactions",
+    "description": "Manage and view your portfolio transactions including buy/sell records with detailed information",
+    "type": "table",
+    "category": "Equity",
+    "subcategory": "Portfolio",
+    "endpoint": "/api/v1/portfolio/transactions",
+    "method": "GET",
+    "runButton": True,
+    "gridData": {
+        "w": 50,
+        "h": 20
+    },
+    "data": {
+        "dataKey": "",
+        "table": {
+            "showAll": True,
+            "enableAdvanced": True,
+            "columnsDefs": [
+                {
+                    "field": "id",
+                    "pinned": "left",
+                    "formatterFn": "none",
+                    "headerName": "ID",
+                    "headerTooltip": "Transaction ID",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "date",
+                    "formatterFn": "none",
+                    "headerName": "Date",
+                    "headerTooltip": "Transaction date",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "symbol",
+                    "formatterFn": "none",
+                    "headerName": "Symbol",
+                    "headerTooltip": "Stock symbol code",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "name",
+                    "formatterFn": "none",
+                    "headerName": "Name",
+                    "headerTooltip": "Stock name",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "transaction_type",
+                    "formatterFn": "none",
+                    "headerName": "Type",
+                    "headerTooltip": "Transaction type (买入/卖出)",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "price",
+                    "formatterFn": "normalized",
+                    "headerName": "Price",
+                    "headerTooltip": "Transaction price per share",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "quantity",
+                    "formatterFn": "int",
+                    "headerName": "Quantity",
+                    "headerTooltip": "Number of shares traded",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "base_value",
+                    "formatterFn": "normalized",
+                    "headerName": "Base Value",
+                    "headerTooltip": "Base value (price × quantity)",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "transaction_fee",
+                    "formatterFn": "normalized",
+                    "headerName": "Fee",
+                    "headerTooltip": "Transaction fee",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "total_value",
+                    "formatterFn": "normalized",
+                    "headerName": "Total Value",
+                    "headerTooltip": "Total transaction value including fees",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "created_at",
+                    "formatterFn": "none",
+                    "headerName": "Created At",
+                    "headerTooltip": "Record creation time",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "updated_at",
+                    "formatterFn": "none",
+                    "headerName": "Updated At",
+                    "headerTooltip": "Record update time",
+                    "cellDataType": "text"
+                }
+            ]
+        }
+    },
+    "source": [
+        "Portfolio"
+    ],
+    "params": [
+        {
+            "paramName": "symbol",
+            "description": "Filter by stock symbol",
+            "type": "text",
+            "value": "",
+            "label": "Symbol",
+            "optional": True
+        },
+        {
+            "paramName": "start_date",
+            "description": "Filter by start date",
+            "type": "text",
+            "value": "",
+            "label": "Start Date",
+            "optional": True
+        },
+        {
+            "paramName": "end_date",
+            "description": "Filter by end date",
+            "type": "text",
+            "value": "",
+            "label": "End Date",
+            "optional": True
+        },
+        {
+            "paramName": "form",
+            "description": "Add a new transaction",
+            "type": "form",
+            "endpoint": "/api/v1/portfolio/transactions",
+            "inputParams": [
+                {
+                    "paramName": "date",
+                    "type": "text",
+                    "value": "",
+                    "label": "Date",
+                    "description": "Transaction date (e.g., 2024-01-01)",
+                },
+                {
+                    "paramName": "symbol",
+                    "type": "text",
+                    "value": "",
+                    "label": "Symbol",
+                    "description": "Stock symbol (e.g., 000001.SZ, 600000.SH)",
+                },
+                {
+                    "paramName": "name",
+                    "type": "text",
+                    "value": "",
+                    "label": "Name",
+                    "description": "Stock name",
+                },
+                {
+                    "paramName": "price",
+                    "type": "number",
+                    "value": 0,
+                    "label": "Price",
+                    "description": "Transaction price per share",
+                },
+                {
+                    "paramName": "quantity",
+                    "type": "number",
+                    "value": 0,
+                    "label": "Quantity",
+                    "description": "Number of shares",
+                },
+                {
+                    "paramName": "transaction_type",
+                    "type": "text",
+                    "value": "买入",
+                    "label": "Type",
+                    "description": "Transaction type (买入/卖出)",
+                },
+                {
+                    "paramName": "add_transaction",
+                    "type": "button",
+                    "value": True,
+                    "label": "Add Transaction",
+                    "description": "Add a new transaction record",
+                }
+            ]
+        }
+    ]
+})
 @portfolio_router.get("/portfolio/transactions", response_model=List[TransactionResponse])
 def get_all_transactions(
     symbol: Optional[str] = Query(None, description="股票代码"),

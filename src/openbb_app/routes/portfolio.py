@@ -6,6 +6,7 @@ import logging
 from pydantic import BaseModel, Field
 from openbb_core.app.service.user_service import UserService
 from openbb_app.core.database import DatabaseManager
+from openbb_app.core.registry import register_widget
 from openbb import obb
 from mysharelib.tools import normalize_symbol
 
@@ -96,6 +97,16 @@ class TransactionResponse(TransactionBase):
         from_attributes = True
 
 # 自选股管理API
+@register_widget({
+    "name": "自选股",
+    "display_name": "Portfolio Stocks",
+    "description": "自选股与持仓",
+    "type": "table",
+    "category": "Equity",
+    "subcategory": "Portfolio",
+    "endpoint": "/portfolio/stocks",
+    "method": "GET"
+})
 @portfolio_router.get("/portfolio/stocks", response_model=List[StockResponse])
 def get_all_stocks():
     """获取所有自选股"""

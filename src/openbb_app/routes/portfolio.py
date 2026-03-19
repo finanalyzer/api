@@ -208,6 +208,37 @@ class TransactionResponse(TransactionBase):
     },
     "source": [
         "Portfolio"
+    ],
+    "params": [
+        {
+            "paramName": "form",
+            "description": "Add a new stock to portfolio",
+            "type": "form",
+            "endpoint": "/api/v1/portfolio/stocks",
+            "inputParams": [
+                {
+                    "paramName": "symbol",
+                    "type": "text",
+                    "value": "",
+                    "label": "Symbol",
+                    "description": "Stock symbol (e.g., 000001.SZ, 600000.SH)",
+                },
+                {
+                    "paramName": "name",
+                    "type": "text",
+                    "value": "",
+                    "label": "Name",
+                    "description": "Stock name",
+                },
+                {
+                    "paramName": "add_stock",
+                    "type": "button",
+                    "value": True,
+                    "label": "Add Stock",
+                    "description": "Add a new stock to the portfolio",
+                }
+            ]
+        }
     ]
 })
 @portfolio_router.get("/portfolio/stocks", response_model=List[StockResponse])

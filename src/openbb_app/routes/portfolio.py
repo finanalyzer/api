@@ -100,12 +100,115 @@ class TransactionResponse(TransactionBase):
 @register_widget({
     "name": "自选股",
     "display_name": "Portfolio Stocks",
-    "description": "自选股与持仓",
+    "description": "Manage and view your portfolio stocks with detailed information including prices, holdings, and performance metrics",
     "type": "table",
     "category": "Equity",
     "subcategory": "Portfolio",
-    "endpoint": "/portfolio/stocks",
-    "method": "GET"
+    "endpoint": "/api/v1/portfolio/stocks",
+    "method": "GET",
+    "runButton": True,
+    "gridData": {
+        "w": 50,
+        "h": 20
+    },
+    "data": {
+        "dataKey": "",
+        "table": {
+            "showAll": True,
+            "enableAdvanced": True,
+            "columnsDefs": [
+                {
+                    "field": "symbol",
+                    "pinned": "left",
+                    "formatterFn": "none",
+                    "headerName": "Symbol",
+                    "headerTooltip": "Stock symbol code",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "name",
+                    "formatterFn": "none",
+                    "headerName": "Name",
+                    "headerTooltip": "Stock name",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "current_price",
+                    "formatterFn": "normalized",
+                    "headerName": "Current Price",
+                    "headerTooltip": "Current market price",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "avg_cost",
+                    "formatterFn": "normalized",
+                    "headerName": "Avg Cost",
+                    "headerTooltip": "Average cost basis",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "quantity",
+                    "formatterFn": "int",
+                    "headerName": "Quantity",
+                    "headerTooltip": "Number of shares held",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "total_value",
+                    "formatterFn": "normalized",
+                    "headerName": "Total Value",
+                    "headerTooltip": "Total market value of holdings",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "fifty_two_week_low",
+                    "formatterFn": "normalized",
+                    "headerName": "52W Low",
+                    "headerTooltip": "52-week low price",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "fifty_two_week_high",
+                    "formatterFn": "normalized",
+                    "headerName": "52W High",
+                    "headerTooltip": "52-week high price",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "dividend_yield",
+                    "formatterFn": "normalizedPercent",
+                    "headerName": "Dividend Yield",
+                    "headerTooltip": "Annual dividend yield percentage",
+                    "cellDataType": "number",
+                    "renderFn": "greenRed"
+                },
+                {
+                    "field": "latest_dividend",
+                    "formatterFn": "normalized",
+                    "headerName": "Latest Dividend",
+                    "headerTooltip": "Most recent dividend payment",
+                    "cellDataType": "number"
+                },
+                {
+                    "field": "strategy",
+                    "formatterFn": "none",
+                    "headerName": "Strategy",
+                    "headerTooltip": "Investment strategy recommendation",
+                    "cellDataType": "text"
+                },
+                {
+                    "field": "tradingview",
+                    "formatterFn": "none",
+                    "headerName": "TradingView",
+                    "headerTooltip": "TradingView chart link",
+                    "cellDataType": "text"
+                }
+            ]
+        }
+    },
+    "source": [
+        "Portfolio"
+    ]
 })
 @portfolio_router.get("/portfolio/stocks", response_model=List[StockResponse])
 def get_all_stocks():

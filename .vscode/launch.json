@@ -4,7 +4,18 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
+        {
+            "name": "OpenBB Debugger: FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "openbb_app.main:app",
+                "--port",
+                "8001"
+            ],
+            "jinja": true
+        },        
         {
             "name": "Python Debugger: Current File",
             "type": "debugpy",

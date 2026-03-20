@@ -228,4 +228,87 @@ def check_api_keys():
         os.environ["TUSHARE_API_KEY"] = tushare_api_key
     else:
         logger.warning("TUSHARE_API_KEY not configured. Tushare data source will be unavailable.")
+
+BUY='买进'
+SELL='卖出'
+HOLD='持有'
+
+def get_strategies(w52low: float, w52high: float, price: float, rate: float) -> str:
+    '''
+    52周价格策略
+        - 买进: 当前价格 <= 52周最低价 * (1 + rate)
+        - 卖出: 当前价格 >= 52周最高价 * (1 - rate)
+        - 持有: 其他情况
+    '''
+    adjusted_low = w52low * (1 + rate)
+    adjusted_high = w52high * (1 - rate)
+    if price <= adjusted_low:
+        return BUY
+    elif price >= adjusted_high:
+        return SELL
+    else:
+        return HOLD
+
+
+def get_tvlink(symbol: str) -> str:
+    """
+    Generate TradingView link for the stock.
+    
+    Args:
+        symbol: Stock symbol in format like 000001.SZ, 600000.SH, 00700.HK
+    
+    Returns:
+        TradingView link as string
+    """
+    from mysharelib.tools import get_exchange, normalize_symbol
+    symbol_b, _, _ = normalize_symbol(symbol)
+    ## Need to check Shenzhen tickers start with 0
+    return f"https://cn.tradingview.com/chart/?symbol={get_exchange(str(symbol_b))}:{int(symbol_b)}"
+
+
+def get_stock_quote(symbol: str) -> dict:
+    """
+    Get stock quote data from OpenBB API.
+    
+    Args:
+        symbol: Stock symbol
+    
+    Returns:
+        Dictionary with financial metrics
+    """
+    from openbb import obb
+    
+    try:
+        logger.info(f"Fetching quote data for {symbol}")
+        
+        # Call OpenBB API
+        quote = obb.equity.price.quote(symbol=symbol)
+        
+        quote_dict = quote.to_dict()
+        
+        def extract_value(val):
+            if isinstance(val, list) and len(val) > 0:
+                return float(val[0]) if val[0] is not None else 0.0
+            return float(val) if val is not None else 0.0
+        
+        result = {
+            'current_price': extract_value(quote_dict.get('current_price', 0)),
+            'fifty_two_week_low': extract_value(quote_dict.get('52_week_low', 0)),
+            'fifty_two_week_high': extract_value(quote_dict.get('52_week_high', 0)),
+            'dividend_yield': extract_value(quote_dict.get('dividend_yield_ttm', 0)),
+            'latest_dividend': extract_value(quote_dict.get('dividend_ttm', 0))
+        }
+        
+        logger.info(f"Successfully fetched quote data for {symbol}")
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching quote data for {symbol}: {e}")
+        # Return fallback values
+        return {
+            'current_price': 0,
+            'fifty_two_week_low': 0,
+            'fifty_two_week_high': 0,
+            'dividend_yield': 0,
+            'latest_dividend': 0
+        }
         

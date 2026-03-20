@@ -29,9 +29,14 @@ def get_db_manager() -> DatabaseManager:
     return DatabaseManager(db_path)
 
 # Pydantic模型
-class StockBase(BaseModel):
+class StockPersistentFields(BaseModel):
     symbol: str = Field(..., description="股票代码")
     name: str = Field(..., description="股票名称")
+    avg_cost: float = Field(default=0, ge=0, description="持仓均价")
+    quantity: int = Field(default=0, ge=0, description="持有数量")
+    total_value: float = Field(default=0, ge=0, description="市值总计")
+
+class StockDynamicFields(BaseModel):
     current_price: float = Field(default=0, ge=0, description="当前市场价格")
     fifty_two_week_low: float = Field(default=0, ge=0, description="52周最低价格")
     fifty_two_week_high: float = Field(default=0, ge=0, description="52周最高价格")
@@ -40,26 +45,19 @@ class StockBase(BaseModel):
     strategy: str = Field(default="持有", description="策略建议")
     tradingview: Optional[str] = Field(None, description="Tradingview链接")
 
+class StockBase(StockPersistentFields, StockDynamicFields):
+    pass
+
 class StockCreate(StockBase):
     pass
 
 class StockUpdate(BaseModel):
     name: Optional[str] = Field(None, description="股票名称")
-    current_price: Optional[float] = Field(None, ge=0, description="当前市场价格")
-    fifty_two_week_low: Optional[float] = Field(None, ge=0, description="52周最低价格")
-    fifty_two_week_high: Optional[float] = Field(None, ge=0, description="52周最高价格")
-    dividend_yield: Optional[float] = Field(None, ge=0, le=100, description="股息率")
-    latest_dividend: Optional[float] = Field(None, ge=0, description="最近股息")
-    strategy: Optional[str] = Field(None, description="策略建议")
-    tradingview: Optional[str] = Field(None, description="Tradingview链接")
+    avg_cost: Optional[float] = Field(None, ge=0, description="持仓均价")
+    quantity: Optional[int] = Field(None, ge=0, description="持有数量")
+    total_value: Optional[float] = Field(None, ge=0, description="市值总计")
 
 class StockResponse(StockBase):
-    avg_cost: float = Field(..., description="持仓均价")
-    quantity: int = Field(..., description="持有数量")
-    total_value: float = Field(..., description="市值总计")
-    created_at: str = Field(..., description="创建时间")
-    updated_at: str = Field(..., description="更新时间")
-    
     class Config:
         from_attributes = True
 

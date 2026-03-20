@@ -1372,7 +1372,7 @@ wheels = [
 
 [[package]]
 name = "openbb-app"
-version = "0.4.6"
+version = "0.4.10"
 source = { editable = "." }
 dependencies = [
     { name = "mysharelib" },

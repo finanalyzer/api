@@ -6,7 +6,7 @@ This file provides guidance to AI agents when working with code in this reposito
 
 A FastAPI-based financial data API server built on OpenBB platform, providing Chinese equity market data with multi-source fallback (AkShare, YFinance, Tushare), SQLite caching, and portfolio management capabilities.
 
-**Version:** 0.4.0
+**Version:** 0.4.9
 
 ## Build System & Commands
 
@@ -23,16 +23,26 @@ uv build
 # Install the package in development mode
 uv pip install -e .
 
-# Run the API server
+# Run the API server (default port 8001)
 openbb-app
 # or
 uv run openbb-app
 
-# Run tests
+# Alternative: run via openbb-api (port 6900 by default)
+uv run openbb-api --app src/openbb_app/main.py
+
+# Run all tests
 uv run pytest
 
 # Run tests with verbose output
 uv run pytest -v
+
+# Run a specific test file
+uv run pytest tests/test_data_source.py
+
+# Run a specific test class or function
+uv run pytest tests/test_data_source.py::TestNormalizeSymbolForYfinance
+uv run pytest tests/test_data_source.py::TestNormalizeSymbolForYfinance::test_convert_shanghai_sh_to_ss
 ```
 
 ## Project Structure
@@ -79,14 +89,29 @@ openbb-app/
 - **Build Backend:** Uses `uv_build` (>=0.9.7,<0.10.0)
 - **Package Layout:** Follows src-layout convention (`src/openbb_app/`)
 - **Type Safety:** Includes `py.typed` marker for PEP 561 compliance
-- **API Framework:** FastAPI with uvicorn server (runs on port 8001)
+- **API Framework:** FastAPI with uvicorn server (default port 8001)
 - **Database:** SQLite with WAL mode, optimized for concurrent access
+
+### Dual App Architecture
+
+The application supports two modes controlled by the `using_openbb_api` flag in `main.py`:
+
+1. **OpenBB Platform API mode** (default when `using_openbb_api=True`): Integrates with `openbb_platform_api` for enhanced platform features
+2. **Standalone FastAPI mode** (`using_openbb_api=False`): Runs a standalone FastAPI app with CORS middleware for local development
+
+The `get_app()` function returns the appropriate app instance based on this flag.
+
+### Database Location
+
+The database path is determined by OpenBB's user settings. The `get_db_manager()` function in `routes/equity_cn.py` reads the cache directory from `UserService.read_from_file()` and creates the database at `<cache_directory>/appdata/equity.db`.
 
 ### Data Sources (Priority Order)
 
-1. **AkShare** - Fallback for A-share market
-2. **YFinance** - Fallback for HK/US markets
-3. **Tushare** - Primary source (requires API key)
+The `DataSourceManager` tries sources in this order:
+
+1. **AkShare** - Primary for A-share market (no API key required)
+2. **YFinance** - Fallback for HK/US markets (no API key required)
+3. **Tushare** - Last resort (requires `TUSHARE_API_KEY` environment variable)
 
 ## API Endpoints
 
@@ -123,7 +148,8 @@ openbb-app/
 
 ### portfolio_stocks table
 - Stores portfolio stock information
-- Fields: symbol (PK), name, current_price, fifty_two_week_low/high, dividend_yield, latest_dividend, strategy, avg_cost, quantity, total_value, tradingview
+- Fields: symbol (PK), name, avg_cost, quantity, total_value
+- Note: Financial metrics are now retrieved dynamically using obb.equity.price.quote
 
 ### transactions table
 - Stores transaction records
@@ -137,17 +163,36 @@ openbb-app/
 [project]
 dependencies = [
     "mysharelib>=1.0.4",      # Symbol normalization utilities
-    "openbb>=4.7.0",          # OpenBB platform core
-    "openbb-akshare>=1.0.5",  # A-share data provider
+    "openbb>=4.6.0",          # OpenBB platform core
+    "openbb-ai>=1.8.7",       # AI integration
+    "openbb-akshare>=1.1.3",  # A-share data provider
     "openbb-tushare>=1.0.0",  # Tushare data provider
     "uvicorn>=0.40.0",        # ASGI server
 ]
 
 [dependency-groups]
 dev = [
+    "ipykernel>=6.30.1",      # Jupyter kernel
     "pytest>=9.0.2",          # Testing framework
 ]
 ```
+
+## Environment Variables
+
+Required for full functionality (set in `.env` file):
+
+- `TUSHARE_API_KEY` - Tushare API key for Chinese market data
+- `FMP_API_KEY` - Financial Modeling Prep API key
+- `AGENT_HOST_URL` - Agent host URL for AI features
+- `APP_API_KEY` - Application API key
+- `OPENROUTER_API_KEY` - OpenRouter API key
+
+## CLI Entry Points
+
+Two scripts are defined in `pyproject.toml`:
+
+- `openbb-app` - Starts the API server (main entry point)
+- `openbb-update` - Updates equity data (see `src/openbb_app/update_equity_data.py`)
 
 ## Development Guidelines
 
@@ -196,6 +241,28 @@ db_manager.add_transaction(transaction)
 # Validate data consistency
 result = db_manager.validate_portfolio_data()
 ```
+
+**Important:** When adding/updating/deleting transactions, `DatabaseManager` automatically recalculates the portfolio stock's `avg_cost`, `quantity`, and `total_value` via `_update_portfolio_data()`. The average cost is calculated using the total buy value (including transaction fees), not just price × quantity.
+
+### Portfolio Stocks Dynamic Data Pattern
+
+```python
+from openbb_app.core import DatabaseManager, get_stock_quote, get_strategies, get_tvlink
+
+db_manager = DatabaseManager(db_path)
+
+# Get portfolio stocks with dynamically retrieved data
+stocks = db_manager.get_all_portfolio_stocks()
+# Each stock will include:
+# - Stored fields: symbol, name, avg_cost, quantity, total_value
+# - Dynamically retrieved: current_price, fifty_two_week_low, fifty_two_week_high, dividend_yield, latest_dividend
+# - Calculated: strategy, tradingview
+
+# Get single stock with dynamic data
+stock = db_manager.get_portfolio_stock('000001.SZ')
+```
+
+**Important:** Financial metrics are now retrieved dynamically using `obb.equity.price.quote` and cached temporarily. The `strategy` field is calculated based on average cost and current price, while the `tradingview` field is generated as a direct link to TradingView.
 
 ### Symbol Format
 

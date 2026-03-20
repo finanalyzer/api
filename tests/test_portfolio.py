@@ -18,13 +18,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5,
-            'fifty_two_week_low': 10.2,
-            'fifty_two_week_high': 18.3,
-            'dividend_yield': 2.5,
-            'latest_dividend': 0.3,
-            'strategy': '持有',
-            'tradingview': 'https://www.tradingview.com/chart/?symbol=SZSE:000001'
+            'avg_cost': 15.0,
+            'quantity': 100,
+            'total_value': 1500.0
         }
         
         result = db_manager.add_portfolio_stock(stock_data)
@@ -35,10 +31,17 @@ class TestPortfolio:
         assert stock is not None
         assert stock['symbol'] == '000001.SZ'
         assert stock['name'] == '平安银行'
-        assert stock['current_price'] == 15.5
-        assert stock['avg_cost'] == 0
-        assert stock['quantity'] == 0
-        assert stock['total_value'] == 0
+        assert stock['avg_cost'] == 15.0
+        assert stock['quantity'] == 100
+        assert stock['total_value'] == 1500.0
+        # Verify dynamically added fields are present
+        assert 'current_price' in stock
+        assert 'fifty_two_week_low' in stock
+        assert 'fifty_two_week_high' in stock
+        assert 'dividend_yield' in stock
+        assert 'latest_dividend' in stock
+        assert 'strategy' in stock
+        assert 'tradingview' in stock
 
     def test_update_portfolio_stock(self, db_manager):
         """Test updating a portfolio stock."""
@@ -46,15 +49,18 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 15.0,
+            'quantity': 100,
+            'total_value': 1500.0
         }
         db_manager.add_portfolio_stock(stock_data)
         
         # Update the stock
         update_data = {
             'name': '更新后的平安银行',
-            'current_price': 16.5,
-            'strategy': '买入'
+            'avg_cost': 16.0,
+            'quantity': 200,
+            'total_value': 3200.0
         }
         result = db_manager.update_portfolio_stock('000001.SZ', update_data)
         assert result is True
@@ -62,15 +68,19 @@ class TestPortfolio:
         # Verify the update
         stock = db_manager.get_portfolio_stock('000001.SZ')
         assert stock['name'] == '更新后的平安银行'
-        assert stock['current_price'] == 16.5
-        assert stock['strategy'] == '买入'
+        assert stock['avg_cost'] == 16.0
+        assert stock['quantity'] == 200
+        assert stock['total_value'] == 3200.0
 
     def test_delete_portfolio_stock(self, db_manager):
         """Test deleting a portfolio stock."""
         # Add a stock first
         stock_data = {
             'symbol': '000001.SZ',
-            'name': '平安银行'
+            'name': '平安银行',
+            'avg_cost': 15.0,
+            'quantity': 100,
+            'total_value': 1500.0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -92,7 +102,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -126,7 +138,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -171,7 +185,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -205,7 +221,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -249,7 +267,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -288,7 +308,9 @@ class TestPortfolio:
         stock_data = {
             'symbol': '000001.SZ',
             'name': '平安银行',
-            'current_price': 15.5
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         
@@ -314,11 +336,17 @@ class TestPortfolio:
         stocks = [
             {
                 'symbol': '000001.SZ',
-                'name': '平安银行'
+                'name': '平安银行',
+                'avg_cost': 15.0,
+                'quantity': 100,
+                'total_value': 1500.0
             },
             {
                 'symbol': '600000.SH',
-                'name': '浦发银行'
+                'name': '浦发银行',
+                'avg_cost': 10.0,
+                'quantity': 200,
+                'total_value': 2000.0
             }
         ]
         
@@ -331,13 +359,25 @@ class TestPortfolio:
         symbols = [stock['symbol'] for stock in all_stocks]
         assert '000001.SZ' in symbols
         assert '600000.SH' in symbols
+        # Verify dynamically added fields are present for all stocks
+        for stock in all_stocks:
+            assert 'current_price' in stock
+            assert 'fifty_two_week_low' in stock
+            assert 'fifty_two_week_high' in stock
+            assert 'dividend_yield' in stock
+            assert 'latest_dividend' in stock
+            assert 'strategy' in stock
+            assert 'tradingview' in stock
 
     def test_get_all_transactions_with_filters(self, db_manager):
         """Test getting transactions with filters."""
         # Add a stock
         stock_data = {
             'symbol': '000001.SZ',
-            'name': '平安银行'
+            'name': '平安银行',
+            'avg_cost': 0,
+            'quantity': 0,
+            'total_value': 0
         }
         db_manager.add_portfolio_stock(stock_data)
         

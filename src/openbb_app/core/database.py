@@ -71,18 +71,9 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS portfolio_stocks (
             symbol TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            current_price REAL NOT NULL DEFAULT 0,
-            fifty_two_week_low REAL DEFAULT 0,
-            fifty_two_week_high REAL DEFAULT 0,
-            dividend_yield REAL DEFAULT 0,
-            latest_dividend REAL DEFAULT 0,
-            strategy TEXT DEFAULT '持有',
             avg_cost REAL DEFAULT 0,
             quantity INTEGER DEFAULT 0,
-            total_value REAL DEFAULT 0,
-            tradingview TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            total_value REAL DEFAULT 0
         )
         ''')
         
@@ -111,6 +102,7 @@ class DatabaseManager:
         
         # 迁移：为现有数据库添加新列
         self._migrate_transactions_table(cursor)
+        self._migrate_portfolio_stocks_table(cursor)
         
         # 应用优化配置
         self._apply_optimizations(conn)
@@ -137,6 +129,45 @@ class DatabaseManager:
                 logger.info("Added total_value column to transactions table")
         except Exception as e:
             logger.warning(f"Migration warning: {e}")
+    
+    def _migrate_portfolio_stocks_table(self, cursor):
+        """迁移自选股表，重构为新 schema"""
+        try:
+            cursor.execute("PRAGMA table_info(portfolio_stocks)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            # 检查是否需要迁移（如果表包含旧字段）
+            if 'current_price' in columns or 'strategy' in columns or 'tradingview' in columns:
+                logger.info("Migrating portfolio_stocks table to new schema")
+                
+                # 创建新表
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS portfolio_stocks_new (
+                    symbol TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    avg_cost REAL DEFAULT 0,
+                    quantity INTEGER DEFAULT 0,
+                    total_value REAL DEFAULT 0
+                )
+                ''')
+                
+                # 复制数据
+                cursor.execute('''
+                INSERT INTO portfolio_stocks_new (symbol, name, avg_cost, quantity, total_value)
+                SELECT symbol, name, avg_cost, quantity, total_value FROM portfolio_stocks
+                ''')
+                
+                # 重命名表
+                cursor.execute("DROP TABLE IF EXISTS portfolio_stocks_old")
+                cursor.execute("ALTER TABLE portfolio_stocks RENAME TO portfolio_stocks_old")
+                cursor.execute("ALTER TABLE portfolio_stocks_new RENAME TO portfolio_stocks")
+                
+                # 删除旧表
+                cursor.execute("DROP TABLE IF EXISTS portfolio_stocks_old")
+                
+                logger.info("Successfully migrated portfolio_stocks table to new schema")
+        except Exception as e:
+            logger.warning(f"Migration warning for portfolio_stocks: {e}")
     
     def _apply_optimizations(self, conn):
         """应用数据库优化配置"""
@@ -355,8 +386,9 @@ class DatabaseManager:
             conn.close()
     
     # Portfolio stocks methods
-    def get_all_portfolio_stocks(self):
-        """获取所有自选股"""
+    
+    def fetch_all_portfolio_stocks_from_db(self) -> list[dict]:
+        """Fetch all portfolio stocks from database without any transformations."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -364,10 +396,33 @@ class DatabaseManager:
         cursor.execute("SELECT * FROM portfolio_stocks ORDER BY symbol")
         rows = [dict(row) for row in cursor.fetchall()]
         conn.close()
+        
+        return rows
+    
+    def get_all_portfolio_stocks(self):
+        """获取所有自选股"""
+        from .utils import get_stock_quote, get_strategies, get_tvlink
+        
+        rows = self.fetch_all_portfolio_stocks_from_db()
+        
+        # Add dynamically retrieved and calculated fields
+        for row in rows:
+            # Get stock quote data
+            quote_data = get_stock_quote(row['symbol'])
+            row.update(quote_data)
+            
+            # Calculate strategy
+            row['strategy'] = get_strategies(row['fifty_two_week_low'], row['fifty_two_week_high'], row['current_price'], 0.05)
+            
+            # Generate TradingView link
+            row['tradingview'] = get_tvlink(row['symbol'])
+        
         return rows
     
     def get_portfolio_stock(self, symbol: str):
         """获取单个自选股"""
+        from .utils import get_stock_quote, get_strategies, get_tvlink
+        
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -375,51 +430,48 @@ class DatabaseManager:
         cursor.execute("SELECT * FROM portfolio_stocks WHERE symbol = ?", (symbol,))
         row = cursor.fetchone()
         conn.close()
-        return dict(row) if row else None
+        
+        if row:
+            row_dict = dict(row)
+            
+            # Get stock quote data
+            quote_data = get_stock_quote(row_dict['symbol'])
+            row_dict.update(quote_data)
+            
+            # Calculate strategy
+            row_dict['strategy'] = get_strategies(row_dict['fifty_two_week_low'], row_dict['fifty_two_week_high'], row_dict['current_price'], 0.05)
+            
+            # Generate TradingView link
+            row_dict['tradingview'] = get_tvlink(row_dict['symbol'])
+            
+            return row_dict
+        
+        return None
     
     def add_portfolio_stock(self, stock_data: dict):
         """添加新的自选股"""
         conn = sqlite3.connect(self.db_path, timeout=30.0)
         cursor = conn.cursor()
         
-        now = datetime.now().isoformat()
-        
         sql = """
         INSERT INTO portfolio_stocks 
-            (symbol, name, current_price, fifty_two_week_low, fifty_two_week_high, 
-             dividend_yield, latest_dividend, strategy, avg_cost, quantity, total_value, tradingview, updated_at)
+            (symbol, name, avg_cost, quantity, total_value)
         VALUES 
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?)
         ON CONFLICT(symbol) DO UPDATE SET
             name = excluded.name,
-            current_price = excluded.current_price,
-            fifty_two_week_low = excluded.fifty_two_week_low,
-            fifty_two_week_high = excluded.fifty_two_week_high,
-            dividend_yield = excluded.dividend_yield,
-            latest_dividend = excluded.latest_dividend,
-            strategy = excluded.strategy,
             avg_cost = excluded.avg_cost,
             quantity = excluded.quantity,
-            total_value = excluded.total_value,
-            tradingview = excluded.tradingview,
-            updated_at = excluded.updated_at
+            total_value = excluded.total_value
         """
         
         try:
             cursor.execute(sql, (
                 stock_data['symbol'],
                 stock_data['name'],
-                stock_data.get('current_price', 0),
-                stock_data.get('fifty_two_week_low', 0),
-                stock_data.get('fifty_two_week_high', 0),
-                stock_data.get('dividend_yield', 0),
-                stock_data.get('latest_dividend', 0),
-                stock_data.get('strategy', '持有'),
                 stock_data.get('avg_cost', 0),
                 stock_data.get('quantity', 0),
-                stock_data.get('total_value', 0),
-                stock_data.get('tradingview'),
-                now
+                stock_data.get('total_value', 0)
             ))
             conn.commit()
             return True
@@ -435,8 +487,6 @@ class DatabaseManager:
         conn = sqlite3.connect(self.db_path, timeout=30.0)
         cursor = conn.cursor()
         
-        now = datetime.now().isoformat()
-        
         # 构建更新语句
         set_clauses = []
         params = []
@@ -446,8 +496,6 @@ class DatabaseManager:
                 set_clauses.append(f"{key} = ?")
                 params.append(value)
         
-        set_clauses.append("updated_at = ?")
-        params.append(now)
         params.append(symbol)
         
         sql = f"UPDATE portfolio_stocks SET {', '.join(set_clauses)} WHERE symbol = ?"
@@ -781,10 +829,9 @@ class DatabaseManager:
         total_value = avg_cost * current_quantity
         
         # 更新持仓数据
-        now = datetime.now().isoformat()
         cursor.execute(
-            "UPDATE portfolio_stocks SET avg_cost = ?, quantity = ?, total_value = ?, updated_at = ? WHERE symbol = ?",
-            (avg_cost, current_quantity, total_value, now, symbol)
+            "UPDATE portfolio_stocks SET avg_cost = ?, quantity = ?, total_value = ? WHERE symbol = ?",
+            (avg_cost, current_quantity, total_value, symbol)
         )
     
     def validate_portfolio_data(self):

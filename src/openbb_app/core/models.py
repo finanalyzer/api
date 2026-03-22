@@ -15,9 +15,6 @@ class AppConfig(BaseModel):
     openrouter_api_key: str = Field(
         description="OpenRouter API key for AI functionality."
     )
-    fmp_api_key: str | None = Field(
-        default=None, description="Financial Modeling Prep API key for data retrieval."
-    )
 
     @field_validator(
         "agent_host_url", "app_api_key", "openrouter_api_key", mode="before"
@@ -29,15 +26,4 @@ class AppConfig(BaseModel):
         """
         if not value:
             raise ValueError(f"{info.field_name} environment variable is required.")
-        return value
-
-    @field_validator("fmp_api_key")
-    def validate_fmp_api_key(cls, value: str | None) -> str | None:
-        """Validate the Financial Modeling Prep API key.
-
-        Must be set if FMP data retrieval is required.
-        Raises ValueError if the key is not valid.
-        """
-        if value is None:
-            raise ValueError("FMP API key must be set for data retrieval.")
         return value

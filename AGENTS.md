@@ -182,7 +182,6 @@ dev = [
 Required for full functionality (set in `.env` file):
 
 - `TUSHARE_API_KEY` - Tushare API key for Chinese market data
-- `FMP_API_KEY` - Financial Modeling Prep API key
 - `AGENT_HOST_URL` - Agent host URL for AI features
 - `APP_API_KEY` - Application API key
 - `OPENROUTER_API_KEY` - OpenRouter API key

@@ -118,85 +118,74 @@ class TransactionResponse(TransactionBase):
                 {
                     "field": "symbol",
                     "pinned": "left",
-                    "formatterFn": "none",
                     "headerName": "Symbol",
                     "headerTooltip": "Stock symbol code",
                     "cellDataType": "text"
                 },
                 {
                     "field": "name",
-                    "formatterFn": "none",
                     "headerName": "Name",
                     "headerTooltip": "Stock name",
                     "cellDataType": "text"
                 },
                 {
                     "field": "current_price",
-                    "formatterFn": "normalized",
                     "headerName": "Current Price",
                     "headerTooltip": "Current market price",
                     "cellDataType": "number"
                 },
                 {
                     "field": "avg_cost",
-                    "formatterFn": "normalized",
                     "headerName": "Avg Cost",
                     "headerTooltip": "Average cost basis",
                     "cellDataType": "number"
                 },
                 {
                     "field": "quantity",
-                    "formatterFn": "int",
                     "headerName": "Quantity",
                     "headerTooltip": "Number of shares held",
                     "cellDataType": "number"
                 },
                 {
                     "field": "total_value",
-                    "formatterFn": "normalized",
                     "headerName": "Total Value",
                     "headerTooltip": "Total market value of holdings",
                     "cellDataType": "number"
                 },
                 {
                     "field": "fifty_two_week_low",
-                    "formatterFn": "normalized",
                     "headerName": "52W Low",
                     "headerTooltip": "52-week low price",
                     "cellDataType": "number"
                 },
                 {
                     "field": "fifty_two_week_high",
-                    "formatterFn": "normalized",
                     "headerName": "52W High",
                     "headerTooltip": "52-week high price",
                     "cellDataType": "number"
                 },
                 {
                     "field": "dividend_yield",
-                    "formatterFn": "normalizedPercent",
                     "headerName": "Dividend Yield",
                     "headerTooltip": "Annual dividend yield percentage",
+                    "formatterFn": "percent",
                     "cellDataType": "number",
                     "renderFn": "greenRed"
                 },
                 {
                     "field": "latest_dividend",
-                    "formatterFn": "normalized",
                     "headerName": "Latest Dividend",
                     "headerTooltip": "Most recent dividend payment",
                     "cellDataType": "number"
                 },
                 {
                     "field": "strategy",
-                    "formatterFn": "none",
                     "headerName": "Strategy",
                     "headerTooltip": "Investment strategy recommendation",
                     "cellDataType": "text"
                 },
                 {
                     "field": "tradingview",
-                    "formatterFn": "none",
                     "headerName": "TradingView",
                     "headerTooltip": "TradingView chart link",
                     "cellDataType": "text"
@@ -405,84 +394,72 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                 {
                     "field": "id",
                     "pinned": "left",
-                    "formatterFn": "none",
                     "headerName": "ID",
                     "headerTooltip": "Transaction ID",
                     "cellDataType": "number"
                 },
                 {
                     "field": "date",
-                    "formatterFn": "none",
                     "headerName": "Date",
                     "headerTooltip": "Transaction date",
                     "cellDataType": "text"
                 },
                 {
                     "field": "symbol",
-                    "formatterFn": "none",
                     "headerName": "Symbol",
                     "headerTooltip": "Stock symbol code",
                     "cellDataType": "text"
                 },
                 {
                     "field": "name",
-                    "formatterFn": "none",
                     "headerName": "Name",
                     "headerTooltip": "Stock name",
                     "cellDataType": "text"
                 },
                 {
                     "field": "transaction_type",
-                    "formatterFn": "none",
                     "headerName": "Type",
                     "headerTooltip": "Transaction type (买入/卖出)",
                     "cellDataType": "text"
                 },
                 {
                     "field": "price",
-                    "formatterFn": "normalized",
                     "headerName": "Price",
                     "headerTooltip": "Transaction price per share",
                     "cellDataType": "number"
                 },
                 {
                     "field": "quantity",
-                    "formatterFn": "int",
                     "headerName": "Quantity",
                     "headerTooltip": "Number of shares traded",
                     "cellDataType": "number"
                 },
                 {
                     "field": "base_value",
-                    "formatterFn": "normalized",
                     "headerName": "Base Value",
                     "headerTooltip": "Base value (price × quantity)",
                     "cellDataType": "number"
                 },
                 {
                     "field": "transaction_fee",
-                    "formatterFn": "normalized",
                     "headerName": "Fee",
                     "headerTooltip": "Transaction fee",
                     "cellDataType": "number"
                 },
                 {
                     "field": "total_value",
-                    "formatterFn": "normalized",
                     "headerName": "Total Value",
                     "headerTooltip": "Total transaction value including fees",
                     "cellDataType": "number"
                 },
                 {
                     "field": "created_at",
-                    "formatterFn": "none",
                     "headerName": "Created At",
                     "headerTooltip": "Record creation time",
                     "cellDataType": "text"
                 },
                 {
                     "field": "updated_at",
-                    "formatterFn": "none",
                     "headerName": "Updated At",
                     "headerTooltip": "Record update time",
                     "cellDataType": "text"
@@ -559,6 +536,13 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                     "label": "Quantity",
                     "description": "Number of shares",
                 },
+                {
+                    "paramName": "total_value",
+                    "type": "number",
+                    "value": 0,
+                    "label": "Total Value",
+                    "description": "Total transaction value including fees",
+                },                
                 {
                     "paramName": "transaction_type",
                     "type": "text",

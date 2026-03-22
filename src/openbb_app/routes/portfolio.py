@@ -9,11 +9,76 @@ from openbb_app.core.database import DatabaseManager
 from openbb_app.core.registry import register_widget
 from openbb import obb
 from mysharelib.tools import normalize_symbol
+import re
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
 # 创建路由器
 portfolio_router = APIRouter()
+
+# 股票名称缓存（使用LRU缓存）
+@lru_cache(maxsize=128)
+def get_stock_name_by_search(symbol: str) -> Optional[str]:
+    """
+    通过股票代码搜索股票名称
+    
+    Args:
+        symbol: 股票代码
+        
+    Returns:
+        股票名称，如果找不到或找到多个结果则返回None
+    """
+    try:
+        logger.info(f"Searching stock name for symbol: {symbol}")
+        result = obb.equity.search(query=symbol, use_cache=True)
+        df = result.to_dataframe()
+        
+        if df.empty:
+            logger.warning(f"No search results found for symbol: {symbol}")
+            return None
+        
+        # 检查是否有多个匹配结果
+        if len(df) > 1:
+            logger.warning(f"Multiple search results found for symbol: {symbol}, count: {len(df)}")
+            return None
+        
+        # 提取股票名称
+        name = None
+        if 'name' in df.columns:
+            name = df['name'].iloc[0]
+        elif 'short_name' in df.columns:
+            name = df['short_name'].iloc[0]
+        elif 'long_name' in df.columns:
+            name = df['long_name'].iloc[0]
+        
+        if name:
+            logger.info(f"Found stock name for {symbol}: {name}")
+            return name
+        else:
+            logger.warning(f"No name field found in search results for symbol: {symbol}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error searching stock name for {symbol}: {e}")
+        return None
+
+def validate_symbol_format(symbol: str) -> bool:
+    """
+    验证股票代码格式
+    
+    Args:
+        symbol: 股票代码
+        
+    Returns:
+        格式是否有效
+    """
+    # A股格式：000001.SZ 或 600000.SH
+    a_share_pattern = r'^\d{6}\.(SZ|SH|BJ)$'
+    # 港股格式：00700.HK 或 09988.HK（4-5位数字）
+    hk_pattern = r'^\d{4,5}\.HK$'
+    
+    return bool(re.match(a_share_pattern, symbol) or re.match(hk_pattern, symbol))
 
 # 初始化数据库管理器
 def get_db_manager() -> DatabaseManager:
@@ -49,7 +114,7 @@ class StockBase(StockPersistentFields, StockDynamicFields):
     pass
 
 class StockCreate(StockBase):
-    pass
+    name: Optional[str] = Field(None, description="股票名称（可选，为空时自动检索）")
 
 class StockUpdate(BaseModel):
     name: Optional[str] = Field(None, description="股票名称")
@@ -65,14 +130,14 @@ class StockResponse(StockBase):
 class TransactionBase(BaseModel):
     date: str = Field(..., description="交易日期")
     symbol: str = Field(..., description="股票代码")
-    name: str = Field(..., description="股票名称")
+    name: Optional[str] = Field(None, description="股票名称（可选，为空时自动检索）")
     price: float = Field(..., gt=0, description="成交价格")
     quantity: int = Field(..., gt=0, description="成交数量")
     transaction_type: str = Field(..., description="交易类型")
     total_value: Optional[float] = Field(None, ge=0, description="交易总额（含手续费）")
 
 class TransactionCreate(TransactionBase):
-    pass
+    date: Optional[str] = Field(None, description="交易日期（可选，为空时使用当前日期）")
 
 class TransactionUpdate(BaseModel):
     date: Optional[str] = Field(None, description="交易日期")
@@ -260,8 +325,30 @@ def get_stock(symbol: str = FastAPIPath(..., description="股票代码")):
 def create_stock(stock: StockCreate):
     """创建新的自选股"""
     try:
+        # 验证股票代码格式
         symbol_b, symbol_f, market = normalize_symbol(stock.symbol)
         stock.symbol = symbol_f
+        
+        if not validate_symbol_format(stock.symbol):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid symbol format: {stock.symbol}. Expected format: 000001.SZ, 600000.SH, or 00700.HK"
+            )
+        
+        # 如果股票名称为空，自动检索
+        if not stock.name or not stock.name.strip():
+            logger.info(f"Stock name is empty, searching for symbol: {stock.symbol}")
+            stock_name = get_stock_name_by_search(stock.symbol)
+            
+            if not stock_name:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unable to find stock name for symbol: {stock.symbol}. Please provide the stock name manually or check the symbol format."
+                )
+            
+            stock.name = stock_name
+            logger.info(f"Auto-filled stock name for {stock.symbol}: {stock.name}")
+        
         db_manager = get_db_manager()
         stock_data = stock.model_dump()
         stock_data.setdefault('avg_cost', 0)
@@ -601,6 +688,34 @@ def create_transaction(transaction: TransactionCreate):
         symbol_b, symbol_f, market = normalize_symbol(transaction.symbol)
         transaction.symbol = symbol_f
         db_manager = get_db_manager()
+        
+        # 日期验证与处理
+        if not transaction.date or not transaction.date.strip():
+            transaction.date = datetime.now().strftime('%Y-%m-%d')
+            logger.info(f"Transaction date is empty, using current date: {transaction.date}")
+        else:
+            try:
+                datetime.strptime(transaction.date, '%Y-%m-%d')
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid date format: {transaction.date}. Expected format: YYYY-MM-DD"
+                )
+        
+        # 股票名称处理
+        if not transaction.name or not transaction.name.strip():
+            logger.info(f"Stock name is empty, searching for symbol: {transaction.symbol}")
+            stock_name = get_stock_name_by_search(transaction.symbol)
+            
+            if not stock_name:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unable to find stock name for symbol: {transaction.symbol}. Please provide the stock name manually or check the symbol format."
+                )
+            
+            transaction.name = stock_name
+            logger.info(f"Auto-filled stock name for {transaction.symbol}: {transaction.name}")
+        
         # 验证股票是否存在
         stock = db_manager.get_portfolio_stock(transaction.symbol)
         if not stock:
@@ -614,6 +729,7 @@ def create_transaction(transaction: TransactionCreate):
                 'total_value': 0
             }
             db_manager.add_portfolio_stock(stock_data)
+            logger.info(f"Auto-created portfolio stock for {transaction.symbol}")
         
         # 使用 model_dump(exclude_none=False) 确保包含所有字段，包括 None 值
         transaction_data = transaction.model_dump(exclude_none=False)
@@ -628,7 +744,7 @@ def create_transaction(transaction: TransactionCreate):
         raise
     except Exception as e:
         logger.error(f"Error creating transaction: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create transaction")
+        raise HTTPException(status_code=500, detail=f"Failed to create transaction: {str(e)}")
 
 @portfolio_router.put("/portfolio/transactions/{transaction_id}", response_model=TransactionResponse)
 def update_transaction(transaction: TransactionUpdate, transaction_id: int = FastAPIPath(..., description="交易记录ID")):

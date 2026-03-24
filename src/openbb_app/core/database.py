@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 import logging
 import time
+from .utils import BUY, SELL
 
 logger = logging.getLogger(__name__)
 
@@ -811,11 +812,11 @@ class DatabaseManager:
         total_sell_quantity = 0
         
         for price, quantity, transaction_type, total_value in transactions:
-            if transaction_type == '买入':
+            if transaction_type == BUY:
                 # 使用总额（含手续费）作为买入成本
                 total_buy_cost += total_value
                 total_buy_quantity += quantity
-            elif transaction_type == '卖出':
+            elif transaction_type == SELL:
                 total_sell_quantity += quantity
         
         # 计算当前持有数量
@@ -856,11 +857,11 @@ class DatabaseManager:
                 transactions = cursor.fetchall()
                 
                 for price, quantity, transaction_type, total_value in transactions:
-                    if transaction_type == '买入':
+                    if transaction_type == BUY:
                         # 使用总额（含手续费）作为买入成本
                         total_buy_cost += total_value
                         total_buy_quantity += quantity
-                    elif transaction_type == '卖出':
+                    elif transaction_type == SELL:
                         total_sell_quantity += quantity
                 
                 # 计算当前持有数量

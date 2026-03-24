@@ -232,14 +232,14 @@ def check_api_keys():
     else:
         logger.warning("TUSHARE_API_KEY not configured. Tushare data source will be unavailable.")
 
-BUY='买进'
+BUY='买入'
 SELL='卖出'
 HOLD='持有'
 
 def get_strategies(w52low: float, w52high: float, price: float, rate: float) -> str:
     '''
     52周价格策略
-        - 买进: 当前价格 <= 52周最低价 * (1 + rate)
+        - 买入: 当前价格 <= 52周最低价 * (1 + rate)
         - 卖出: 当前价格 >= 52周最高价 * (1 - rate)
         - 持有: 其他情况
     '''

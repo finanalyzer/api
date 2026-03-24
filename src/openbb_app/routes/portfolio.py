@@ -242,7 +242,24 @@ class TransactionResponse(TransactionBase):
                     "headerTooltip": "Annual dividend yield percentage",
                     "formatterFn": "percent",
                     "cellDataType": "number",
-                    "renderFn": "greenRed"
+                    "renderFn": "columnColor",
+                    "renderFnParams": {
+                        "colorRules": [
+                            {
+                                "condition": "between",
+                                "range": {
+                                    "min": 3,
+                                    "max": 5
+                                },
+                                "color": "blue"
+                            },
+                            {
+                                "condition": "gt",
+                                "value": 5,
+                                "color": "green"
+                            }
+                        ]
+                    }
                 },
                 {
                     "field": "latest_dividend",
@@ -254,7 +271,22 @@ class TransactionResponse(TransactionBase):
                     "field": "strategy",
                     "headerName": "Strategy",
                     "headerTooltip": "Investment strategy recommendation",
-                    "cellDataType": "text"
+                    "cellDataType": "text",
+                    "renderFn": "columnColor",
+                    "renderFnParams": {
+                        "colorRules": [
+                            {
+                                "condition": "contains",
+                                "value": "卖出",
+                                "color": "green"
+                            },
+                            {
+                                "condition": "contains",
+                                "value": "买入",
+                                "color": "red"
+                            }
+                        ]
+                    }
                 },
                 {
                     "field": "tradingview",
@@ -526,7 +558,22 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                     "field": "transaction_type",
                     "headerName": "Type",
                     "headerTooltip": "Transaction type (买入/卖出)",
-                    "cellDataType": "text"
+                    "cellDataType": "text",
+                    "renderFn": "columnColor",
+                    "renderFnParams": {
+                        "colorRules": [
+                            {
+                                "condition": "contains",
+                                "value": "卖出",
+                                "color": "green"
+                            },
+                            {
+                                "condition": "contains",
+                                "value": "买入",
+                                "color": "red"
+                            }
+                        ]
+                    }
                 },
                 {
                     "field": "price",
@@ -658,6 +705,16 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                     "value": "买入",
                     "label": "Type",
                     "description": "Transaction type (买入/卖出)",
+                    "options": [
+                    {
+                        "label": "买入",
+                        "value": "买入"
+                    },
+                    {
+                        "label": "卖出",
+                        "value": "卖出"
+                    }
+                    ]
                 },
                 {
                     "paramName": "add_transaction",

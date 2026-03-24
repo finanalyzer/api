@@ -1,7 +1,7 @@
 import os
 from openbb_app.routes.equity_cn import equity_cn_router
 from openbb_app.routes.portfolio import portfolio_router
-from openbb_app.core.registry import WIDGETS
+from openbb_app.core.registry import WIDGETS, add_template, TEMPLATES
 
 import logging
 from mysharelib.tools import setup_logger
@@ -61,6 +61,16 @@ def health_check():
     """Health check endpoint for monitoring"""
     return {"status": "healthy"}
 
+@app.get("/apps.json")
+def get_apps():
+    """Apps configuration file for the OpenBB Workspace
+    
+    Returns:
+        JSONResponse: The contents of apps.json file
+    """
+    # Read and return the apps configuration file
+    return list(TEMPLATES.values())
+
 if not using_openbb_api:
     @app.get("/widgets.json")
     def get_widgets():
@@ -77,6 +87,7 @@ app.include_router(
     portfolio_router,
     prefix="/api/v1",
 )
+add_template("portfolio")
 
 # 2. The CLI Entry Point
 def start():

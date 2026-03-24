@@ -1,0 +1,109 @@
+{
+    "name": "\u6301\u4ed3\u7ba1\u7406",
+    "img": "https://x0.ifengimg.com/ucms/2025_16/A25F85EA69929D10BE12190E20264C43657282E1_size230_w1013_h584.jpg",
+    "img_dark": "",
+    "img_light": "",
+    "description": "A\u80a1\u6570\u636e\u3002",
+    "allowCustomization": true,
+    "tabs": {
+        "cn_holdings":{
+            "id": "cn_holdings",
+            "name": "\u6301\u80a1",
+            "layout": [
+                {
+                    "i": "portfolio/stocks",
+                    "x": 0,
+                    "y": 2,
+                    "w": 40,
+                    "h": 14
+                },
+                {
+                    "i": "portfolio/transactions",
+                    "x": 0,
+                    "y": 16,
+                    "w": 40,
+                    "h": 14
+                }
+            ]
+        },
+        "cn_overview": {
+            "id": "cn_overview",
+            "name": "\u7b80\u51b5",
+            "layout": [
+                {
+                    "i": "portfolio/key_metrics",
+                    "x": 0,
+                    "y": 2,
+                    "w": 13,
+                    "h": 21,
+                    "state": {
+                        "chartView": {
+                            "enabled": false,
+                            "chartType": "line"
+                        },
+                        "columnState": {
+                            "default": {
+                                "columnOrder": {
+                                    "orderedColIds": [
+                                        "fact",
+                                        "value"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "i": "portfolio/news",
+                    "x": 13,
+                    "y": 2,
+                    "w": 27,
+                    "h": 21,
+                    "state": {
+                        "params": {
+                            "limit": "20"
+                        },
+                        "chartView": {
+                            "enabled": false,
+                            "chartType": "line"
+                        },
+                        "columnState": {
+                            "default": {
+                                "columnPinning": {
+                                    "leftColIds": [
+                                        "date"
+                                    ],
+                                    "rightColIds": []
+                                },
+                                "columnOrder": {
+                                    "orderedColIds": [
+                                        "title",
+                                        "author",
+                                        "date",
+                                        "sentiment",
+                                        "url",
+                                        "source"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "groups": [
+        {
+            "name": "Group 1",
+            "type": "endpointParam",
+            "paramName": "symbol",
+            "defaultValue": "600325",
+            "widgetIds": [
+                "portfolio/transactions",
+                "portfolio/stocks",
+                "portfolio/key_metrics",
+                "portfolio/news"
+            ]
+        }
+    ]
+}

@@ -33,6 +33,7 @@ def get_stock_name_by_search(symbol: str) -> Optional[str]:
         logger.info(f"Searching stock name for symbol: {symbol}")
         result = obb.equity.search(query=symbol, use_cache=True)
         df = result.to_dataframe()
+        df = df[df['symbol'] == symbol]
         
         if df.empty:
             logger.warning(f"No search results found for symbol: {symbol}")
@@ -167,6 +168,7 @@ class TransactionResponse(TransactionBase):
     "type": "table",
     "category": "Equity",
     "subcategory": "Portfolio",
+    "widgetId": "portfolio/stocks",
     "endpoint": "/api/v1/portfolio/stocks",
     "method": "GET",
     "runButton": True,
@@ -182,10 +184,15 @@ class TransactionResponse(TransactionBase):
             "columnsDefs": [
                 {
                     "field": "symbol",
-                    "pinned": "left",
                     "headerName": "Symbol",
                     "headerTooltip": "Stock symbol code",
-                    "cellDataType": "text"
+                    "cellDataType": "text",
+                    "pinned": "left",
+                    "renderFn": "cellOnClick",
+                    "renderFnParams": {
+                            "actionType": "groupBy",
+                            "groupByParamName": "symbol"
+                        }
                 },
                 {
                     "field": "name",
@@ -263,6 +270,17 @@ class TransactionResponse(TransactionBase):
     ],
     "params": [
         {
+            "paramName": "symbol",
+            "description": "Filter by stock symbol",
+            "type": "text",
+            "value": "600325.SH",
+            "label": "Symbol",
+            "type": "endpoint",
+            "optionsEndpoint": "/api/v1/portfolio/stocks",
+            "multiSelect": False,
+            "show": True
+        },
+        {
             "paramName": "form",
             "description": "Add a new stock to portfolio",
             "type": "form",
@@ -338,7 +356,7 @@ def create_stock(stock: StockCreate):
         # 如果股票名称为空，自动检索
         if not stock.name or not stock.name.strip():
             logger.info(f"Stock name is empty, searching for symbol: {stock.symbol}")
-            stock_name = get_stock_name_by_search(stock.symbol)
+            stock_name = get_stock_name_by_search(symbol_b)
             
             if not stock_name:
                 raise HTTPException(
@@ -465,6 +483,7 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
     "type": "table",
     "category": "Equity",
     "subcategory": "Portfolio",
+    "widgetId": "portfolio/transactions",
     "endpoint": "/api/v1/portfolio/transactions",
     "method": "GET",
     "runButton": True,
@@ -562,9 +581,12 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
             "paramName": "symbol",
             "description": "Filter by stock symbol",
             "type": "text",
-            "value": "",
+            "value": "600325.SH",
             "label": "Symbol",
-            "optional": True
+            "type": "endpoint",
+            "optionsEndpoint": "/api/v1/portfolio/stocks",
+            "multiSelect": False,
+            "show": True
         },
         {
             "paramName": "start_date",
@@ -705,7 +727,7 @@ def create_transaction(transaction: TransactionCreate):
         # 股票名称处理
         if not transaction.name or not transaction.name.strip():
             logger.info(f"Stock name is empty, searching for symbol: {transaction.symbol}")
-            stock_name = get_stock_name_by_search(transaction.symbol)
+            stock_name = get_stock_name_by_search(symbol_b)
             
             if not stock_name:
                 raise HTTPException(
@@ -799,3 +821,105 @@ def validate_portfolio_data():
     except Exception as e:
         logger.error(f"Error validating portfolio data: {e}")
         raise HTTPException(status_code=500, detail="Failed to validate portfolio data")
+
+@portfolio_router.get("/symbols")
+def get_portfolio_symbols():
+    """Get available stock tickers for A-share market"""
+    from openbb_app.core.utils import get_symbols
+    return get_symbols()
+
+@register_widget({
+    "name": "基本信息",
+    "description": "Get key company information including name, CIK, market cap, total employees, website URL, and more.",
+    "category": "Equity",
+    "subcategory": "Company Info",
+    "type": "markdown",
+    "widgetId": "portfolio/key_metrics",
+    "endpoint": "/api/v1/portfolio/key_metrics",
+    "gridData": {
+        "w": 10,
+        "h": 12
+    },
+    "data": {
+        "table": {
+            "showAll": True,
+            "columns": [
+                {"field": "fact", "headerName": "Fact", "width": 200},
+                {"field": "value", "headerName": "Value", "width": 200}
+            ]
+        }
+    },
+    "source": "A股",
+    "params": [
+        {
+            "type": "endpoint",
+            "paramName": "symbol",
+            "label": "Symbol",
+            "value": "600325.SH",
+            "description": "Symbol to get company facts",
+            "optionsEndpoint": "/api/v1/portfolio/stocks"
+        }
+    ]
+})
+@portfolio_router.get("/portfolio/key_metrics")
+def get_cn_key_metrics(symbol: str):
+    """Get company facts for a symbol"""
+    from openbb_app.core.utils import get_info
+    from mysharelib.tools import normalize_symbol
+
+    symbol_b, _, _ = normalize_symbol(symbol)
+    key_metrics = get_info(symbol)
+    key_metrics.name = get_stock_name_by_search(symbol_b)
+    return key_metrics.to_markdown()
+
+@register_widget({
+    "name": "相关新闻",
+    "description": "Get recent news articles for stocks, including headlines, publish dates, and article summaries.",
+    "category": "Equity",
+    "subcategory": "News",
+    "type": "table",
+    "widgetId": "portfolio/news",
+    "endpoint": "/api/v1/portfolio/news",
+    "gridData": {
+        "w": 40,
+        "h": 8
+    },
+    "data": {
+        "table": {
+            "showAll": True,
+            "columnsDefs": [
+                {"field": "date", "headerName": "Date", "width": 180, "cellDataType": "text", "pinned": "left"},
+                {"field": "title", "headerName": "Title", "width": 300, "cellDataType": "text"},
+                {"field": "source", "headerName": "Source", "width": 150, "cellDataType": "text"},
+                {"field": "author", "headerName": "Author", "width": 150, "cellDataType": "text"},
+                {"field": "sentiment", "headerName": "Sentiment", "width": 120, "cellDataType": "text"},
+                {"field": "url", "headerName": "URL", "width": 200, "cellDataType": "text"}
+            ]
+        }
+    },
+    "source": "A股",
+    "params": [
+        {
+            "type": "endpoint",
+            "paramName": "symbol",
+            "label": "Symbol",
+            "value": "600325.SH",
+            "description": "Stock symbol to get news",
+            "multiSelect": False,
+            "optionsEndpoint": "/api/v1/portfolio/stocks"
+        },
+        {
+            "type": "number",
+            "paramName": "limit",
+            "label": "Number of Articles",
+            "value": "10",
+            "description": "Maximum number of news articles to display"
+        }
+    ]
+})
+@portfolio_router.get("/portfolio/news")
+async def get_cn_news(symbol: str = Query(..., description="Stock symbol"), 
+                         limit: int = 10):
+    """Get news articles for a stock"""
+    from openbb_app.core.utils import get_news
+    return get_news(symbol, limit).to_dict(orient="records")

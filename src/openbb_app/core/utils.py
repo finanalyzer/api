@@ -1,12 +1,15 @@
 import random
 import re
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import string
 import time
+import pandas as pd
 from openbb_ai.models import LlmMessage  # type: ignore[import-untyped]
+from openbb import obb
 import logging
 from mysharelib.tools import setup_logger
 
+default_provider = "akshare"
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
 
@@ -311,4 +314,42 @@ def get_stock_quote(symbol: str) -> dict:
             'dividend_yield': 0,
             'latest_dividend': 0
         }
-        
+
+def get_symbols(exchange: str = "") -> List[dict]:
+    """Get available tickers for OpenBB Workspace widget."""
+    result_df = obb.equity.search(provider="akshare").to_dataframe()
+    if exchange == "HKEX":
+        result_df = result_df[result_df['exchange'] == "HKEX"]
+    else:
+        result_df = result_df[result_df['exchange'] != "HKEX"]
+    if not result_df.empty:
+        equity_list = [
+            {
+                "label": row['name'] if 'name' in result_df.columns else "Unknown Company",
+                "value": row['symbol'] if 'symbol' in result_df.columns else "invalid ticker",
+                "extraInfo": {
+                    "description": row['symbol'] if 'symbol' in result_df.columns else "invalid ticker",
+                    "rightOfDescription": row['exchange'] if 'exchange' in result_df.columns else "invalid"
+                }
+            }
+            for index, row in result_df.iterrows()
+        ]
+        return equity_list
+    return []
+
+def get_news(symbol: str, limit: int = 10)->pd.DataFrame:
+    """Get latest news for a stock"""
+    from mysharelib.tools import normalize_symbol
+    symbol_b, _, _ = normalize_symbol(symbol)
+    return obb.news.company(symbol_b, provider=default_provider).to_dataframe().head(limit)
+
+def get_info(symbol: str)->pd.DataFrame:
+    """
+    获取A股基本信息
+    """
+    from mysharelib.tools import normalize_symbol
+
+    _, symbol_f, _ = normalize_symbol(symbol)
+
+    df_base = obb.equity.fundamental.metrics(symbol=symbol_f, provider=default_provider).to_dataframe().T
+    return df_base[0]

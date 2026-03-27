@@ -6,7 +6,8 @@ class AppConfig(BaseModel):
 
     title: str = Field(default="FinApp", description="The title of the app.")
     description: str = Field(
-        default="FinApp API for OpenBB Workspace", description="The description of the app."
+        default="FinApp API for OpenBB Workspace",
+        description="The description of the app.",
     )
     agent_host_url: str = Field(
         description="The host URL and port number where the app is running."
@@ -14,6 +15,12 @@ class AppConfig(BaseModel):
     app_api_key: str = Field(description="The API key to access the bot.")
     openrouter_api_key: str = Field(
         description="OpenRouter API key for AI functionality."
+    )
+    data_folder_path: str | None = Field(
+        description="The path to the folder that will store the transaction data."
+    )
+    data_file: str = Field(
+        default="transactions.xlsx", description="Path to transaction data file."
     )
 
     @field_validator(

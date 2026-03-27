@@ -1,17 +1,19 @@
+import logging
 import random
 import re
-from typing import Optional, Tuple, List
 import string
 import time
+from typing import List, Optional, Tuple
+
 import pandas as pd
-from openbb_ai.models import LlmMessage  # type: ignore[import-untyped]
-from openbb import obb
-import logging
 from mysharelib.tools import setup_logger
+from openbb import obb
+from openbb_ai.models import LlmMessage  # type: ignore[import-untyped]
 
 default_provider = "akshare"
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
+
 
 def validate_api_key(token: str, api_key: str) -> bool:
     """Validate API key in header against pre-defined list of keys."""
@@ -51,74 +53,80 @@ async def generate_id(length: int = 2) -> str:
     random_suffix = "".join(random.choices(base36_chars, k=length))
     return to_base36(timestamp) + random_suffix
 
+
 def validate_api_key(api_key: str, provider: str) -> Tuple[bool, str]:
     """
     Validate the format of an API key.
-    
+
     Args:
         api_key: The API key string to validate
         provider: The provider name ('akshare' or 'tushare')
-    
+
     Returns:
         Tuple of (is_valid, error_message)
     """
     if not api_key or not api_key.strip():
         return False, "API key cannot be empty"
-    
+
     api_key = api_key.strip()
-    
-    if provider == 'akshare':
+
+    if provider == "akshare":
         if len(api_key) < 8:
             return False, "AkShare API key must be at least 8 characters"
-        if not re.match(r'^[a-zA-Z0-9\-_]+$', api_key):
+        if not re.match(r"^[a-zA-Z0-9\-_]+$", api_key):
             return False, "AkShare API key contains invalid characters"
-    elif provider == 'tushare':
+    elif provider == "tushare":
         if len(api_key) < 10:
             return False, "Tushare API key must be at least 10 characters"
-        if not re.match(r'^[a-zA-Z0-9]+$', api_key):
+        if not re.match(r"^[a-zA-Z0-9]+$", api_key):
             return False, "Tushare API key contains invalid characters"
     else:
         return False, f"Unknown provider: {provider}"
-    
+
     return True, ""
+
 
 def prompt_for_api_key(provider: str) -> Optional[str]:
     """
     Prompt the user to input an API key interactively.
-    
+
     Args:
         provider: The provider name ('akshare' or 'tushare')
-    
+
     Returns:
         The API key string if provided, None if user chose to skip
     """
     provider_name = provider.capitalize()
-    
+
     print(f"\n{'='*60}")
     print(f"⚠️  {provider_name} API Key Not Found")
     print(f"{'='*60}")
-    print(f"\nThe {provider_name} API key is required for accessing {provider_name} data.")
-    
-    if provider == 'akshare':
+    print(
+        f"\nThe {provider_name} API key is required for accessing {provider_name} data."
+    )
+
+    if provider == "akshare":
         print("\n📖 How to obtain AkShare API key:")
         print("   - Visit: https://akshare.akfamily.xyz/")
-    elif provider == 'tushare':
+    elif provider == "tushare":
         print("\n📖 How to obtain Tushare API key:")
         print("   - Visit: https://tushare.pro/")
         print("   - Register for an account")
         print("   - Navigate to 个人中心 -> 接口TOKEN")
         print("   - Copy your API token")
-    
+
     print(f"\n{'='*60}")
-    
+
     while True:
-        api_key = input(f"\nEnter {provider_name} API key (or press Enter to skip): ").strip()
-        
+        api_key = input(
+            f"\nEnter {provider_name} API key (or press Enter to skip): "
+        ).strip()
+
         if not api_key:
             print(f"\n⚠️  Skipping {provider_name} API key configuration.")
             print(f"   {provider_name} service will be unavailable.")
             return None
-        
+
         is_valid, error_msg = validate_api_key(api_key, provider)
         if is_valid:
             print(f"\n✅ {provider_name} API key validated successfully.")
@@ -126,62 +134,63 @@ def prompt_for_api_key(provider: str) -> Optional[str]:
         else:
             print(f"\n❌ Invalid API key: {error_msg}")
             retry = input("Would you like to try again? (y/n): ").strip().lower()
-            if retry != 'y':
+            if retry != "y":
                 print(f"\n⚠️  Skipping {provider_name} API key configuration.")
                 print(f"   {provider_name} service will be unavailable.")
                 return None
+
 
 def configure_api_keys() -> Tuple[Optional[str], Optional[str]]:
     """
     Check and configure API keys for akshare and tushare.
     Prompts user for missing keys and stores them in OpenBB credentials.
-    
+
     Returns:
         Tuple of (akshare_api_key, tushare_api_key) - None if not configured
     """
     from openbb import obb
     from openbb_core.app.service.user_service import UserService
-    
+
     akshare_key = None
     tushare_key = None
-    
+
     print("\n🔍 Checking API key configuration...")
-    
+
     try:
         akshare_key = obb.user.credentials.akshare_api_key.get_secret_value()
     except Exception:
         akshare_key = None
-    
+
     try:
         tushare_key = obb.user.credentials.tushare_api_key.get_secret_value()
     except Exception:
         tushare_key = None
-    
+
     missing_keys = []
     if not akshare_key:
-        missing_keys.append('akshare')
+        missing_keys.append("akshare")
     if not tushare_key:
-        missing_keys.append('tushare')
-    
+        missing_keys.append("tushare")
+
     if not missing_keys:
         print("✅ All API keys are configured.")
         return akshare_key, tushare_key
-    
+
     print(f"\n⚠️  Missing API keys: {', '.join(missing_keys)}")
-    
+
     for provider in missing_keys:
         api_key = prompt_for_api_key(provider)
-        
+
         if api_key:
             try:
-                if provider == 'akshare':
+                if provider == "akshare":
                     u = UserService.read_from_file()
                     u.credentials.akshare_api_key = api_key
                     UserService.write_to_file(u)
                     obb.user.credentials.akshare_api_key = api_key
                     akshare_key = api_key
                     print(f"✅ AkShare API key saved to OpenBB credentials.")
-                elif provider == 'tushare':
+                elif provider == "tushare":
                     u = UserService.read_from_file()
                     u.credentials.tushare_api_key = api_key
                     UserService.write_to_file(u)
@@ -192,30 +201,36 @@ def configure_api_keys() -> Tuple[Optional[str], Optional[str]]:
                 logger.error(f"Failed to save {provider} API key: {e}")
                 print(f"❌ Failed to save {provider} API key: {e}")
         else:
-            if provider == 'akshare':
-                logger.warning("AkShare API key not provided. AkShare service will be unavailable.")
+            if provider == "akshare":
+                logger.warning(
+                    "AkShare API key not provided. AkShare service will be unavailable."
+                )
                 print(f"\n⚠️  AkShare service will be unavailable.")
-            elif provider == 'tushare':
-                logger.warning("Tushare API key not provided. Tushare service will be unavailable.")
+            elif provider == "tushare":
+                logger.warning(
+                    "Tushare API key not provided. Tushare service will be unavailable."
+                )
                 print(f"\n⚠️  Tushare service will be unavailable.")
-    
+
     print(f"\n{'='*60}")
     print("API Key Configuration Summary:")
     print(f"{'='*60}")
     print(f"AkShare: {'✅ Configured' if akshare_key else '❌ Not configured'}")
     print(f"Tushare: {'✅ Configured' if tushare_key else '❌ Not configured'}")
     print(f"{'='*60}\n")
-    
+
     return akshare_key, tushare_key
+
 
 def check_api_keys():
     """
     Check if API keys for akshare and tushare are configured.
     """
     import os
+
     from openbb import obb
 
-    if 'info' in obb.reference:
+    if "info" in obb.reference:
         obj = obb.reference["info"]["extensions"]["openbb_provider_extension"]
         print([item for item in obj if "akshare" in item])
         print([item for item in obj if "tushare" in item])
@@ -225,24 +240,30 @@ def check_api_keys():
     if akshare_api_key:
         os.environ["AKSHARE_API_KEY"] = akshare_api_key
     else:
-        logger.warning("AKSHARE_API_KEY not configured. AkShare data source will be unavailable.")
+        logger.warning(
+            "AKSHARE_API_KEY not configured. AkShare data source will be unavailable."
+        )
 
     if tushare_api_key:
         os.environ["TUSHARE_API_KEY"] = tushare_api_key
     else:
-        logger.warning("TUSHARE_API_KEY not configured. Tushare data source will be unavailable.")
+        logger.warning(
+            "TUSHARE_API_KEY not configured. Tushare data source will be unavailable."
+        )
 
-BUY='买入'
-SELL='卖出'
-HOLD='持有'
+
+BUY = "买入"
+SELL = "卖出"
+HOLD = "持有"
+
 
 def get_strategies(w52low: float, w52high: float, price: float, rate: float) -> str:
-    '''
+    """
     52周价格策略
         - 买入: 当前价格 <= 52周最低价 * (1 + rate)
         - 卖出: 当前价格 >= 52周最高价 * (1 - rate)
         - 持有: 其他情况
-    '''
+    """
     adjusted_low = w52low * (1 + rate)
     adjusted_high = w52high * (1 - rate)
     if price <= adjusted_low:
@@ -256,94 +277,126 @@ def get_strategies(w52low: float, w52high: float, price: float, rate: float) -> 
 def get_tvlink(symbol: str) -> str:
     """
     Generate TradingView link for the stock.
-    
+
     Args:
         symbol: Stock symbol in format like 000001.SZ, 600000.SH, 00700.HK
-    
+
     Returns:
         TradingView link as string
     """
     from mysharelib.tools import get_exchange, normalize_symbol
+
     symbol_b, _, _ = normalize_symbol(symbol)
-    ## Need to check Shenzhen tickers start with 0
     return f"https://cn.tradingview.com/chart/?symbol={get_exchange(str(symbol_b))}:{int(symbol_b)}"
+
+
+def get_quote(symbols: str) -> List[dict]:
+    all_data = []
+    list = symbols.split(",")
+    for symbol in list:
+        try:
+            data = get_stock_quote(symbol)
+            data["symbol"] = symbol
+            all_data.append(data)
+        except Exception as e:
+            print(f"Error fetching data for symbol {symbol}: {e}")
+            continue
+    return all_data
 
 
 def get_stock_quote(symbol: str) -> dict:
     """
     Get stock quote data from OpenBB API.
-    
+
     Args:
         symbol: Stock symbol
-    
+
     Returns:
         Dictionary with financial metrics
     """
     from openbb import obb
-    
+
     try:
         logger.info(f"Fetching quote data for {symbol}")
-        
+
         # Call OpenBB API
         quote = obb.equity.price.quote(symbol=symbol)
-        
+
         quote_dict = quote.to_dict()
-        
+
         def extract_value(val):
             if isinstance(val, list) and len(val) > 0:
                 return float(val[0]) if val[0] is not None else 0.0
             return float(val) if val is not None else 0.0
-        
+
         result = {
-            'current_price': extract_value(quote_dict.get('current_price', 0)),
-            'fifty_two_week_low': extract_value(quote_dict.get('52_week_low', 0)),
-            'fifty_two_week_high': extract_value(quote_dict.get('52_week_high', 0)),
-            'dividend_yield': extract_value(quote_dict.get('dividend_yield_ttm', 0)),
-            'latest_dividend': extract_value(quote_dict.get('dividend_ttm', 0))
+            "current_price": extract_value(quote_dict.get("current_price", 0)),
+            "fifty_two_week_low": extract_value(quote_dict.get("52_week_low", 0)),
+            "fifty_two_week_high": extract_value(quote_dict.get("52_week_high", 0)),
+            "dividend_yield": extract_value(quote_dict.get("dividend_yield_ttm", 0)),
+            "latest_dividend": extract_value(quote_dict.get("dividend_ttm", 0)),
         }
-        
+
         logger.info(f"Successfully fetched quote data for {symbol}")
         return result
     except Exception as e:
         logger.error(f"Error fetching quote data for {symbol}: {e}")
         # Return fallback values
         return {
-            'current_price': 0,
-            'fifty_two_week_low': 0,
-            'fifty_two_week_high': 0,
-            'dividend_yield': 0,
-            'latest_dividend': 0
+            "current_price": 0,
+            "fifty_two_week_low": 0,
+            "fifty_two_week_high": 0,
+            "dividend_yield": 0,
+            "latest_dividend": 0,
         }
+
 
 def get_symbols(exchange: str = "") -> List[dict]:
     """Get available tickers for OpenBB Workspace widget."""
     result_df = obb.equity.search(provider="akshare").to_dataframe()
     if exchange == "HKEX":
-        result_df = result_df[result_df['exchange'] == "HKEX"]
+        result_df = result_df[result_df["exchange"] == "HKEX"]
     else:
-        result_df = result_df[result_df['exchange'] != "HKEX"]
+        result_df = result_df[result_df["exchange"] != "HKEX"]
     if not result_df.empty:
         equity_list = [
             {
-                "label": row['name'] if 'name' in result_df.columns else "Unknown Company",
-                "value": row['symbol'] if 'symbol' in result_df.columns else "invalid ticker",
+                "label": (
+                    row["name"] if "name" in result_df.columns else "Unknown Company"
+                ),
+                "value": (
+                    row["symbol"] if "symbol" in result_df.columns else "invalid ticker"
+                ),
                 "extraInfo": {
-                    "description": row['symbol'] if 'symbol' in result_df.columns else "invalid ticker",
-                    "rightOfDescription": row['exchange'] if 'exchange' in result_df.columns else "invalid"
-                }
+                    "description": (
+                        row["symbol"]
+                        if "symbol" in result_df.columns
+                        else "invalid ticker"
+                    ),
+                    "rightOfDescription": (
+                        row["exchange"]
+                        if "exchange" in result_df.columns
+                        else "invalid"
+                    ),
+                },
             }
             for index, row in result_df.iterrows()
         ]
         return equity_list
     return []
 
-def get_news(symbol: str, limit: int = 10)->pd.DataFrame:
+
+def get_news(symbol: str, limit: int = 10) -> pd.DataFrame:
     """Get latest news for a stock"""
     from mysharelib.tools import normalize_symbol
-    symbol_b, _, _ = normalize_symbol(symbol)
-    return obb.news.company(symbol_b, provider=default_provider).to_dataframe().head(limit)
 
-def get_info(symbol: str)->pd.DataFrame:
+    symbol_b, _, _ = normalize_symbol(symbol)
+    return (
+        obb.news.company(symbol_b, provider=default_provider).to_dataframe().head(limit)
+    )
+
+
+def get_info(symbol: str) -> pd.DataFrame:
     """
     获取A股基本信息
     """
@@ -351,5 +404,9 @@ def get_info(symbol: str)->pd.DataFrame:
 
     _, symbol_f, _ = normalize_symbol(symbol)
 
-    df_base = obb.equity.fundamental.metrics(symbol=symbol_f, provider=default_provider).to_dataframe().T
+    df_base = (
+        obb.equity.fundamental.metrics(symbol=symbol_f, provider=default_provider)
+        .to_dataframe()
+        .T
+    )
     return df_base[0]

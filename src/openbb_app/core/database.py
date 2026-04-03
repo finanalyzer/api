@@ -101,6 +101,21 @@ class DatabaseManager:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_symbol ON transactions(symbol)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)')
         
+        # 创建仪表盘表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS dashboards (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            widgets TEXT DEFAULT '[]',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # 创建仪表盘索引
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_dashboards_id ON dashboards(id)')
+        
         # 迁移：为现有数据库添加新列
         self._migrate_transactions_table(cursor)
         self._migrate_portfolio_stocks_table(cursor)
@@ -890,5 +905,140 @@ class DatabaseManager:
                 'consistent': len(inconsistencies) == 0,
                 'inconsistencies': inconsistencies
             }
+        finally:
+            conn.close()
+    
+    # Dashboard methods
+    
+    def get_all_dashboards(self):
+        """获取所有仪表盘"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM dashboards ORDER BY created_at")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # 解析widgets JSON
+        dashboards = []
+        for row in rows:
+            dashboard = dict(row)
+            dashboard['widgets'] = json.loads(dashboard.get('widgets', '[]'))
+            dashboards.append(dashboard)
+        
+        return dashboards
+    
+    def get_dashboard(self, dashboard_id: str):
+        """获取单个仪表盘"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM dashboards WHERE id = ?", (dashboard_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            dashboard = dict(row)
+            dashboard['widgets'] = json.loads(dashboard.get('widgets', '[]'))
+            return dashboard
+        return None
+    
+    def add_dashboard(self, dashboard_data: dict):
+        """添加新的仪表盘"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        
+        now = datetime.now().isoformat()
+        
+        sql = """
+        INSERT INTO dashboards 
+            (id, name, description, widgets, created_at, updated_at)
+        VALUES 
+            (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            description = excluded.description,
+            widgets = excluded.widgets,
+            updated_at = excluded.updated_at
+        """
+        
+        try:
+            cursor.execute(sql, (
+                dashboard_data['id'],
+                dashboard_data['name'],
+                dashboard_data.get('description'),
+                json.dumps(dashboard_data.get('widgets', [])),
+                now,
+                now
+            ))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error adding dashboard: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    
+    def update_dashboard(self, dashboard_id: str, dashboard_data: dict):
+        """更新仪表盘信息"""
+        import json
+        
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        
+        now = datetime.now().isoformat()
+        
+        set_clauses = []
+        params = []
+        
+        for key, value in dashboard_data.items():
+            if key == 'widgets':
+                set_clauses.append("widgets = ?")
+                params.append(json.dumps(value))
+            elif key != 'id':
+                set_clauses.append(f"{key} = ?")
+                params.append(value)
+        
+        if set_clauses:
+            set_clauses.append("updated_at = ?")
+            params.append(now)
+            params.append(dashboard_id)
+            
+            sql = f"UPDATE dashboards SET {', '.join(set_clauses)} WHERE id = ?"
+            
+            try:
+                cursor.execute(sql, params)
+                conn.commit()
+                return cursor.rowcount > 0
+            except Exception as e:
+                logger.error(f"Error updating dashboard: {e}")
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+        return False
+    
+    def delete_dashboard(self, dashboard_id: str):
+        """删除仪表盘"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("DELETE FROM dashboards WHERE id = ?", (dashboard_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting dashboard: {e}")
+            conn.rollback()
+            raise
         finally:
             conn.close()

@@ -12,4 +12,5 @@ config = AppConfig(
     openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
     data_folder_path=os.getenv("DATA_FOLDER_PATH", None),
     data_file=os.getenv("DATA_FILE_NAME", "transactions.xlsx"),
+    cors_origins=os.getenv("CORS_ORIGINS", None),
 )

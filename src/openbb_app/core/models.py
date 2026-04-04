@@ -17,10 +17,22 @@ class AppConfig(BaseModel):
         description="OpenRouter API key for AI functionality."
     )
     data_folder_path: str | None = Field(
-        description="The path to the folder that will store the transaction data."
+        description=("The path to the folder that will store the " "transaction data."),
     )
     data_file: str = Field(
-        default="transactions.xlsx", description="Path to transaction data file."
+        default="transactions.xlsx",
+        description="Path to transaction data file.",
+    )
+    cors_origins: list[str] = Field(
+        default=[
+            "https://pro.openbb.co",
+            "http://localhost:1420",
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176",
+        ],
+        description="List of allowed CORS origins.",
     )
 
     @field_validator(
@@ -34,3 +46,22 @@ class AppConfig(BaseModel):
         if not value:
             raise ValueError(f"{info.field_name} environment variable is required.")
         return value
+
+    @field_validator("cors_origins", mode="before")
+    def parse_cors_origins(cls, value: str | list[str] | None) -> list[str]:
+        """Parse CORS origins from environment variable.
+
+        Accepts either a comma-separated string or a list.
+        """
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return [
+            "https://pro.openbb.co",
+            "http://localhost:1420",
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176",
+        ]

@@ -3,9 +3,9 @@ import os
 
 from mysharelib.tools import setup_logger
 from openbb_app.core.registry import TEMPLATES, WIDGETS, add_template
+from openbb_app.routes.dashboard import dashboard_router
 from openbb_app.routes.equity_cn import equity_cn_router
 from openbb_app.routes.portfolio import portfolio_router
-from openbb_app.routes.dashboard import dashboard_router
 
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
@@ -30,18 +30,9 @@ def get_app(openbb_api: bool = True):
             title=config.title, description=config.description, version="0.1.2"
         )
 
-        origins = [
-            "https://pro.openbb.co",
-            "http://localhost:1420",
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:5175",
-            "http://localhost:5176",
-        ]
-
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=origins,
+            allow_origins=config.cors_origins,
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],

@@ -267,7 +267,7 @@ def add_dashboard_widget(
         raise HTTPException(status_code=500, detail="Failed to add dashboard widget")
 
 
-@dashboard_router.put("/dashboard/{dashboard_id}/widgets/{widget_id}", response_model=WidgetResponse)
+@dashboard_router.put("/dashboard/{dashboard_id}/widgets/{widget_id:path}", response_model=WidgetResponse)
 def update_dashboard_widget(
     widget: WidgetUpdate,
     dashboard_id: str = FastAPIPath(..., description="仪表盘ID"),
@@ -296,7 +296,7 @@ def update_dashboard_widget(
         raise HTTPException(status_code=500, detail="Failed to update dashboard widget")
 
 
-@dashboard_router.delete("/dashboard/{dashboard_id}/widgets/{widget_id}")
+@dashboard_router.delete("/dashboard/{dashboard_id}/widgets/{widget_id:path}")
 def delete_dashboard_widget(
     dashboard_id: str = FastAPIPath(..., description="仪表盘ID"),
     widget_id: str = FastAPIPath(..., description="组件ID"),

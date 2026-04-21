@@ -135,6 +135,17 @@ The `DataSourceManager` tries sources in this order:
 - `DELETE /portfolio/transactions/{id}` - Delete transaction
 - `GET /portfolio/validate` - Validate portfolio data consistency
 
+### Dashboard Management (`/api/v1`)
+- `GET /dashboard` - Get all dashboards
+- `GET /dashboard/{dashboard_id}` - Get single dashboard
+- `POST /dashboard` - Create new dashboard
+- `PUT /dashboard/{dashboard_id}` - Update dashboard
+- `DELETE /dashboard/{dashboard_id}` - Delete dashboard
+- `GET /dashboard/{dashboard_id}/widgets` - Get all widgets in a dashboard
+- `POST /dashboard/{dashboard_id}/widgets` - Add widget to dashboard
+- `PUT /dashboard/{dashboard_id}/widgets/{widget_id:path}` - Update widget (uses `:path` converter for IDs with slashes)
+- `DELETE /dashboard/{dashboard_id}/widgets/{widget_id:path}` - Delete widget (uses `:path` converter for IDs with slashes)
+
 ## Database Schema
 
 ### equity_price_history table
@@ -281,3 +292,19 @@ stock = db_manager.get_portfolio_stock('000001.SZ')
 - Uses `py.typed` marker for PEP 561 type hint compliance
 - Logging via standard `logging` module with `mysharelib.tools.setup_logger`
 - Pydantic models for request/response validation in API routes
+
+## Path Parameter Notes
+
+### Widget IDs with Slashes
+
+Widget IDs may contain forward slashes (e.g., `equity/screener-1776216985149-eznmq1p30wq`). To handle these correctly in FastAPI routes, use the `:path` converter:
+
+```python
+# Correct - captures everything including slashes
+@dashboard_router.delete("/dashboard/{dashboard_id}/widgets/{widget_id:path}")
+
+# Incorrect - will not match widget IDs containing slashes
+@dashboard_router.delete("/dashboard/{dashboard_id}/widgets/{widget_id}")
+```
+
+The `:path` converter is a Starlette feature that captures the entire remaining path segment, including forward slashes. This is essential for widget management endpoints since widget IDs are generated from the original widget type (e.g., `equity/screener`).

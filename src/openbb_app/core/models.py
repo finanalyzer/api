@@ -34,6 +34,10 @@ class AppConfig(BaseModel):
         ],
         description="List of allowed CORS origins.",
     )
+    default_provider: str = Field(
+        default="akshare",
+        description="Default data provider.",
+    )
 
     @field_validator(
         "agent_host_url", "app_api_key", "openrouter_api_key", mode="before"

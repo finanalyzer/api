@@ -10,7 +10,8 @@ from mysharelib.tools import setup_logger
 from openbb import obb
 from openbb_ai.models import LlmMessage  # type: ignore[import-untyped]
 
-default_provider = "akshare"
+from .config import config
+
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
 
@@ -320,7 +321,7 @@ def get_stock_quote(symbol: str) -> dict:
         logger.info(f"Fetching quote data for {symbol}")
 
         # Call OpenBB API
-        quote = obb.equity.price.quote(symbol=symbol)
+        quote = obb.equity.price.quote(symbol=symbol, provider=config.default_provider)
 
         quote_dict = quote.to_dict()
 
@@ -330,9 +331,9 @@ def get_stock_quote(symbol: str) -> dict:
             return float(val) if val is not None else 0.0
 
         result = {
-            "current_price": extract_value(quote_dict.get("current_price", 0)),
-            "fifty_two_week_low": extract_value(quote_dict.get("52_week_low", 0)),
-            "fifty_two_week_high": extract_value(quote_dict.get("52_week_high", 0)),
+            "current_price": extract_value(quote_dict.get("last_price", 0)),
+            "fifty_two_week_low": extract_value(quote_dict.get("year_low", 0)),
+            "fifty_two_week_high": extract_value(quote_dict.get("year_high", 0)),
             "dividend_yield": extract_value(quote_dict.get("dividend_yield_ttm", 0)),
             "latest_dividend": extract_value(quote_dict.get("dividend_ttm", 0)),
         }
@@ -353,7 +354,7 @@ def get_stock_quote(symbol: str) -> dict:
 
 def get_symbols(exchange: str = "") -> List[dict]:
     """Get available tickers for OpenBB Workspace widget."""
-    result_df = obb.equity.search(provider="akshare").to_dataframe()
+    result_df = obb.equity.search(provider=config.default_provider).to_dataframe()
     if exchange == "HKEX":
         result_df = result_df[result_df["exchange"] == "HKEX"]
     else:
@@ -392,7 +393,7 @@ def get_news(symbol: str, limit: int = 10) -> pd.DataFrame:
 
     symbol_b, _, _ = normalize_symbol(symbol)
     return (
-        obb.news.company(symbol_b, provider=default_provider).to_dataframe().head(limit)
+        obb.news.company(symbol_b, provider="akshare").to_dataframe().head(limit)
     )
 
 
@@ -405,7 +406,7 @@ def get_info(symbol: str) -> pd.DataFrame:
     _, symbol_f, _ = normalize_symbol(symbol)
 
     df_base = (
-        obb.equity.fundamental.metrics(symbol=symbol_f, provider=default_provider)
+        obb.equity.fundamental.metrics(symbol=symbol_f, provider=config.default_provider)
         .to_dataframe()
         .T
     )

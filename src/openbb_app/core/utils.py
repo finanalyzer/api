@@ -321,7 +321,7 @@ def get_stock_quote(symbol: str) -> dict:
         logger.info(f"Fetching quote data for {symbol}")
 
         # Call OpenBB API
-        quote = obb.equity.price.quote(symbol=symbol, provider=config.default_provider)
+        quote = obb.equity.price.quote(symbol=symbol, provider="akshare")
 
         quote_dict = quote.to_dict()
 
@@ -392,21 +392,19 @@ def get_news(symbol: str, limit: int = 10) -> pd.DataFrame:
     from mysharelib.tools import normalize_symbol
 
     symbol_b, _, _ = normalize_symbol(symbol)
-    return (
-        obb.news.company(symbol_b, provider="akshare").to_dataframe().head(limit)
-    )
+    return obb.news.company(symbol_b, provider="akshare").to_dataframe().head(limit)
 
 
 def get_info(symbol: str) -> pd.DataFrame:
     """
-    获取A股基本信息
+    获取股票基本信息
     """
     from mysharelib.tools import normalize_symbol
 
     _, symbol_f, _ = normalize_symbol(symbol)
 
     df_base = (
-        obb.equity.fundamental.metrics(symbol=symbol_f, provider=config.default_provider)
+        obb.equity.fundamental.metrics(symbol=symbol_f, provider="akshare")
         .to_dataframe()
         .T
     )

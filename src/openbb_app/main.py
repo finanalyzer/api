@@ -30,6 +30,7 @@ def get_app(openbb_api: bool = True):
             title=config.title, description=config.description, version="0.1.2"
         )
 
+        logger.info(f"CORS: {config.cors_origins}")
         app.add_middleware(
             CORSMiddleware,
             allow_origins=config.cors_origins,

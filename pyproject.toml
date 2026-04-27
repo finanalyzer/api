@@ -1,6 +1,6 @@
 [project]
 name = "openbb-app"
-version = "1.4.3"
+version = "1.4.4"
 description = "FinAnalyzer backend (OpenBB App)"
 readme = "README.md"
 authors = [
@@ -11,7 +11,7 @@ dependencies = [
     "mysharelib>=1.0.5",
     "openbb>=4.7.1",
     "openbb-ai>=1.8.7",
-    "openbb-akshare>=1.2.0",
+    "openbb-akshare>=1.2.1",
     "openbb-tdx>=1.2.0",
     "openbb-tushare>=1.2.0",
     "uvicorn>=0.40.0",

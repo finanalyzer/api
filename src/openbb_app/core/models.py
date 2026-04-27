@@ -56,10 +56,14 @@ class AppConfig(BaseModel):
         """Parse CORS origins from environment variable.
 
         Accepts either a comma-separated string or a list.
+        Empty strings are treated as None to use defaults.
         """
         if isinstance(value, list):
             return value
         if isinstance(value, str):
+            # Treat empty string as None to use defaults
+            if not value.strip():
+                return None
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return [
             "https://pro.openbb.co",

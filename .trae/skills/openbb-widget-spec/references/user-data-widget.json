@@ -1,0 +1,66 @@
+{
+  "id": "user-data-widget",
+  "name": "User Data Viewer",
+  "description": "Displays user data from Microsoft Edge demo JSON endpoint, showing information about users including their name, language, ID, bio, and version.",
+  "type": "table",
+  "category": "Data",
+  "subcategory": "External Sources",
+  "endpoint": "https://microsoftedge.github.io/Demos/json-dummy-data/64KB.json",
+  "gridData": {
+    "w": 6,
+    "h": 4
+  },
+  "params": [
+    {
+      "name": "languageFilter",
+      "type": "select",
+      "label": "Language Filter",
+      "description": "Filter users by language",
+      "default": "all",
+      "options": [
+        {"value": "all", "label": "All Languages"},
+        {"value": "Sindhi", "label": "Sindhi"},
+        {"value": "Uyghur", "label": "Uyghur"},
+        {"value": "Galician", "label": "Galician"},
+        {"value": "Maltese", "label": "Maltese"},
+        {"value": "Sesotho sa Leboa", "label": "Sesotho sa Leboa"},
+        {"value": "isiZulu", "label": "isiZulu"},
+        {"value": "Icelandic", "label": "Icelandic"},
+        {"value": "Hindi", "label": "Hindi"},
+        {"value": "Bosnian", "label": "Bosnian"},
+        {"value": "Setswana", "label": "Setswana"}
+      ]
+    },
+    {
+      "name": "sortBy",
+      "type": "select",
+      "label": "Sort By",
+      "description": "Column to sort by",
+      "default": "name",
+      "options": [
+        {"value": "name", "label": "Name"},
+        {"value": "language", "label": "Language"},
+        {"value": "version", "label": "Version"}
+      ]
+    },
+    {
+      "name": "sortDirection",
+      "type": "select",
+      "label": "Sort Direction",
+      "description": "Sort ascending or descending",
+      "default": "asc",
+      "options": [
+        {"value": "asc", "label": "Ascending"},
+        {"value": "desc", "label": "Descending"}
+      ]
+    },
+    {
+      "name": "showBio",
+      "type": "boolean",
+      "label": "Show Bio",
+      "description": "Display the bio column",
+      "default": true
+    }
+  ],
+  "source": "external"
+}

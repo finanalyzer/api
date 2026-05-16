@@ -82,6 +82,7 @@ A widget specification is defined in a `widgets.json` file with the following ke
 ```json
 {
   "custom_widget": {
+    "id": "user-data-widget",
     "name": "Custom Widget Example",
     "description": "A widget to demonstrate custom configuration",
     "endpoint": "custom-endpoint",
@@ -175,3 +176,16 @@ A widget specification is defined in a `widgets.json` file with the following ke
 ## Output Format
 
 The skill returns a JSON object representing the complete widget specification, ready to be added to a `widgets.json` file in your OpenBB extension or backend.
+
+### Reference Widget Configurations
+
+The following reference widget configurations are available:
+
+- [User Data Widget](references/user-data-widget.json) - Reference implementation showing:
+  - Basic widget structure with id, name, description
+  - Table widget type configuration
+  - Select, boolean, and number parameter types
+  - Grid data dimensions
+  - External API endpoint integration
+
+**Reference Pattern**: When generating widget specs, use the user-data-widget.json structure as a template for simple table widgets with filter parameters.

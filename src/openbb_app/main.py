@@ -1,11 +1,13 @@
 import logging
 import os
 
+from fastapi.responses import JSONResponse
 from mysharelib.tools import setup_logger
 from openbb_app.core.registry import TEMPLATES, WIDGETS, add_template
 from openbb_app.routes.dashboard import dashboard_router
 from openbb_app.routes.equity_cn import equity_cn_router
 from openbb_app.routes.portfolio import portfolio_router
+from openbb_app.routes.agents import agent_router
 
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
@@ -66,12 +68,6 @@ def start_api(openbb_api: bool = True):
 app = get_app(openbb_api=using_openbb_api)
 
 
-@app.get("/api/v1/health")
-def health_check():
-    """Health check endpoint for monitoring"""
-    return {"status": "healthy"}
-
-
 @app.get("/apps.json")
 def get_apps():
     """Apps configuration file for the OpenBB Workspace
@@ -83,6 +79,30 @@ def get_apps():
     return list(TEMPLATES.values())
 
 
+@app.get("/agents.json")
+def agents_json() -> JSONResponse:
+    """Return agent configuration for OpenBB Copilot discovery."""
+    return JSONResponse(
+        content={
+            "openbb_app_builder_agent": {
+                "name": "OpenBB App Builder Agent",
+                "description": (
+                    "Build custom OpenBB Workspace backend apps using Claude Code CLI "
+                    "and local .claude skills. Supports widget context for data-driven "
+                    "app generation."
+                ),
+                "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Anthropic_logo.svg/1280px-Anthropic_logo.svg.png",
+                "endpoints": {"query": "/v1/query"},
+                "features": {
+                    "streaming": True,
+                    "widget-dashboard-select": True,
+                    "widget-dashboard-search": True,
+                },
+            }
+        }
+    )
+
+
 if not using_openbb_api:
 
     @app.get("/widgets.json")
@@ -91,6 +111,11 @@ if not using_openbb_api:
         # return list(WIDGETS.values())
         return WIDGETS
 
+
+app.include_router(
+    agent_router,
+    prefix="/v1",
+)
 
 app.include_router(
     equity_cn_router,

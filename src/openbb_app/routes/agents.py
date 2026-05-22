@@ -291,3 +291,38 @@ def list_sessions() -> JSONResponse:
             "sessions": sessions,
         }
     )
+
+
+@agent_router.get("/models")
+async def list_models() -> JSONResponse:
+    """Get available LLM models for the configured code generator.
+
+    For OpenCode: queries the OpenCode server /provider API to discover
+    all configured models from supported providers.
+
+    For Claude Code: returns a curated list of known Claude models,
+    augmented with the user's configured model from ~/.claude/settings.json.
+    """
+    try:
+        generator = get_code_generator(settings.code_generator)
+        models = await generator.list_models()
+        return JSONResponse(
+            content={
+                "generator": settings.code_generator,
+                "models": [
+                    {"id": m.id, "name": m.name, "provider": m.provider}
+                    for m in models
+                ],
+            }
+        )
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"error": str(e), "models": []},
+        )
+    except Exception as e:
+        logger.exception("Failed to list models")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "models": []},
+        )

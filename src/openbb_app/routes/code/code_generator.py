@@ -1,9 +1,19 @@
 """Code generator abstract base class and implementations."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Dict, Optional
+from dataclasses import dataclass
+from typing import AsyncGenerator, Dict, List, Optional
 
 from .session_manager import Session
+
+
+@dataclass
+class ModelInfo:
+    """Information about an available LLM model."""
+
+    id: str
+    name: str
+    provider: str
 
 
 class CodeGeneratorConfig:
@@ -36,9 +46,33 @@ class CodeGenerator(ABC):
         """Check if the code generator is available."""
         pass
 
+    @abstractmethod
+    async def list_models(self) -> List[ModelInfo]:
+        """List available models for this code generator."""
+        pass
+
 
 class ClaudeCodeGenerator(CodeGenerator):
     """Claude Code CLI generator implementation."""
+
+    # Known Claude Code models (updated May 2026)
+    CLAUDE_MODELS: List[ModelInfo] = [
+        ModelInfo(
+            id="claude-sonnet-4-20250514",
+            name="Claude Sonnet 4",
+            provider="anthropic",
+        ),
+        ModelInfo(
+            id="claude-opus-4-20250514",
+            name="Claude Opus 4",
+            provider="anthropic",
+        ),
+        ModelInfo(
+            id="claude-haiku-3-5-20241022",
+            name="Claude 3.5 Haiku",
+            provider="anthropic",
+        ),
+    ]
 
     async def run(
         self, prompt: str, session: Session, config: CodeGeneratorConfig
@@ -61,6 +95,39 @@ class ClaudeCodeGenerator(CodeGenerator):
         from .config import check_claude_installed
 
         return check_claude_installed()
+
+    async def list_models(self) -> List[ModelInfo]:
+        """List available Claude Code models.
+
+        Claude Code CLI doesn't have a programmatic "list models" endpoint.
+        Returns a curated list of known models, augmented with the user's
+        configured model from ~/.claude/settings.json if available.
+        """
+        models = list(self.CLAUDE_MODELS)
+
+        # Try to read the user's configured model from Claude settings
+        try:
+            import json
+            from pathlib import Path
+
+            settings_path = Path.home() / ".claude" / "settings.json"
+            if settings_path.exists():
+                settings_data = json.loads(settings_path.read_text())
+                configured_model = settings_data.get("model")
+                if configured_model and not any(
+                    m.id == configured_model for m in models
+                ):
+                    models.append(
+                        ModelInfo(
+                            id=configured_model,
+                            name=configured_model,
+                            provider="anthropic",
+                        )
+                    )
+        except Exception:
+            pass  # Silently ignore settings read failures
+
+        return models
 
 
 class OpenCodeGenerator(CodeGenerator):
@@ -278,6 +345,134 @@ class OpenCodeGenerator(CodeGenerator):
         if binary:
             return True, f"OpenCode found at: {binary}"
         return False, "OpenCode not found. Please install it and add to PATH"
+
+    async def list_models(self) -> List[ModelInfo]:
+        """List enabled models via OpenCode server's v2 /api/model endpoint.
+
+        Starts a temporary OpenCode server if none is running, queries
+        the /api/model endpoint to discover all configured models, and
+        returns a list of only enabled models.
+        """
+        import asyncio
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        binary = self.find_opencode_binary()
+        if not binary:
+            logger.warning("OpenCode binary not found, cannot list models")
+            return []
+
+        port = 4096
+        base_url = f"http://127.0.0.1:{port}"
+
+        # Check if an OpenCode server is already running
+        server_already_running = False
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{base_url}/global/health")
+                server_already_running = resp.status_code == 200
+        except Exception:
+            server_already_running = False
+
+        server_process = None
+        if not server_already_running:
+            logger.info(f"Starting temporary OpenCode server on port {port}")
+            server_process = await asyncio.create_subprocess_exec(
+                binary, "serve", "--port", str(port), "--hostname", "127.0.0.1",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            # Wait for server to be ready
+            for _ in range(20):
+                await asyncio.sleep(0.5)
+                try:
+                    import httpx
+                    async with httpx.AsyncClient(timeout=3.0) as client:
+                        resp = await client.get(f"{base_url}/global/health")
+                        if resp.status_code == 200:
+                            break
+                except Exception:
+                    pass
+                if server_process.returncode is not None:
+                    logger.warning("OpenCode server exited prematurely")
+                    stderr = ""
+                    if server_process.stderr:
+                        stderr = (await server_process.stderr.read()).decode()
+                    logger.warning(f"Server stderr: {stderr[:500]}")
+                    return []
+
+        models: List[ModelInfo] = []
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Step 1: Get enabled provider IDs from /api/provider
+                enabled_provider_ids: set = set()
+                provider_resp = await client.get(f"{base_url}/api/provider")
+                if provider_resp.status_code == 200:
+                    providers = provider_resp.json()
+                    if isinstance(providers, list):
+                        for p in providers:
+                            p_enabled = p.get("enabled")
+                            # ProviderV2Info.enabled anyOf:
+                            #   false (boolean) → explicitly disabled
+                            #   {via:"env"} | {via:"auth"} | {via:"custom"} → enabled
+                            #   None / absent → enabled by default
+                            # Only skip when enabled is explicitly False
+                            if p_enabled is False:
+                                continue
+                            enabled_provider_ids.add(p.get("id", ""))
+                else:
+                    logger.warning(
+                        f"Failed to fetch providers: HTTP {provider_resp.status_code}"
+                    )
+
+                if not enabled_provider_ids:
+                    logger.warning("No enabled providers found")
+                    return []
+
+                # Step 2: Get models and filter by enabled providers + model.enabled
+                resp = await client.get(f"{base_url}/api/model")
+                if resp.status_code != 200:
+                    logger.warning(
+                        f"Failed to fetch models: HTTP {resp.status_code}"
+                    )
+                    return []
+
+                data = resp.json()
+                # ModelV2Info: id, providerID, name, enabled (boolean)
+                # Use strict identity check: only boolean True passes.
+                # This rejects None, 0, "false", "", etc.
+                if isinstance(data, list):
+                    for model in data:
+                        model_id = model.get("id", "")
+                        provider_id = model.get("providerID", "")
+                        # Cross-filter: provider must be enabled AND model must be enabled
+                        if provider_id not in enabled_provider_ids:
+                            continue
+                        if model.get("enabled") is not True:
+                            continue
+                        model_name = model.get("name", model_id)
+                        models.append(
+                            ModelInfo(
+                                id=model_id,
+                                name=model_name,
+                                provider=provider_id,
+                            )
+                        )
+        except Exception as e:
+            logger.exception(f"Failed to fetch models from OpenCode server: {e}")
+        finally:
+            if server_process is not None and not server_already_running:
+                server_process.terminate()
+                try:
+                    await asyncio.wait_for(server_process.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    server_process.kill()
+                    await server_process.wait()
+
+        return models
 
 
 def get_code_generator(generator_type: str) -> CodeGenerator:

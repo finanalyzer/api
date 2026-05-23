@@ -17,6 +17,7 @@ class Session:
 
     session_id: str
     openbb_conversation_id: Optional[str] = None
+    opencode_session_id: Optional[str] = None
     is_continued: bool = False
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_active: datetime = field(default_factory=datetime.utcnow)

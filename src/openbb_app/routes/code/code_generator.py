@@ -1,10 +1,23 @@
 """Code generator abstract base class and implementations."""
 
+import asyncio
+import json
+import logging
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import AsyncGenerator, Dict, List, Optional
 
-from .session_manager import Session
+import httpx
+from openbb_ai import message_chunk, reasoning_step
+
+from .config import (
+    OPENCODE_DEFAULT_PORT,
+    check_opencode_installed,
+    find_opencode_binary,
+    settings,
+)
+from .session_manager import Session, session_manager
 
 
 @dataclass
@@ -37,7 +50,7 @@ class CodeGenerator(ABC):
     @abstractmethod
     async def run(
         self, prompt: str, session: Session, config: CodeGeneratorConfig
-    ) -> AsyncGenerator[Dict, None]:
+    ) -> AsyncGenerator[dict, None]:
         """Run code generation with the given prompt."""
         pass
 
@@ -50,6 +63,117 @@ class CodeGenerator(ABC):
     async def list_models(self) -> List[ModelInfo]:
         """List available models for this code generator."""
         pass
+
+
+@dataclass
+class OpenCodeRunnerConfig:
+    """Configuration for OpenCode invocation."""
+
+    working_directory: Optional[str] = None
+    timeout: float = 600.0
+    port: int = OPENCODE_DEFAULT_PORT
+    model_id: Optional[str] = None
+
+
+_opencode_server_process: Optional[asyncio.subprocess.Process] = None
+
+logger = logging.getLogger(__name__)
+
+
+async def ensure_opencode_server(config: OpenCodeRunnerConfig) -> tuple[bool, str]:
+    """Ensure OpenCode server is running.
+
+    Returns:
+        Tuple of (success, base_url_or_error_message)
+    """
+    global _opencode_server_process
+
+    base_url = f"http://127.0.0.1:{config.port}"
+
+    async def check_server() -> bool:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{base_url}/global/health")
+                return resp.status_code == 200
+        except Exception:
+            return False
+
+    if await check_server():
+        logger.info(f"OpenCode server already running at {base_url}")
+        return True, base_url
+
+    opencode_binary = find_opencode_binary()
+    if not opencode_binary:
+        return False, "OpenCode CLI not found. Please install from https://opencode.ai"
+
+    cwd = config.working_directory
+    if not cwd and settings.resolved_target_repo:
+        cwd = str(settings.resolved_target_repo)
+    if not cwd:
+        cwd = os.getcwd()
+
+    logger.info(f"Starting OpenCode server on port {config.port} in {cwd}")
+
+    cmd = [
+        opencode_binary,
+        "serve",
+        "--port",
+        str(config.port),
+        "--hostname",
+        "127.0.0.1",
+    ]
+
+    _opencode_server_process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        cwd=cwd,
+    )
+
+    for i in range(30):
+        await asyncio.sleep(0.5)
+        if await check_server():
+            logger.info(f"OpenCode server started at {base_url}")
+            return True, base_url
+        if _opencode_server_process.returncode is not None:
+            stderr = ""
+            if _opencode_server_process.stderr:
+                stderr = (await _opencode_server_process.stderr.read()).decode()
+            logger.error(f"OpenCode server failed: {stderr}")
+            return False, f"OpenCode server failed to start: {stderr[:500]}"
+
+    return False, "OpenCode server startup timed out"
+
+
+def format_tool_message(tool_name: str, tool_input: dict) -> str:
+    """Generate a human-readable message describing a tool execution."""
+    name_lower = tool_name.lower()
+
+    if name_lower in ("read", "view"):
+        path = tool_input.get("file_path", "")
+        return f"Reading file: {path.split('/')[-1] if path else 'unknown'}"
+
+    if name_lower == "write":
+        path = tool_input.get("file_path", "")
+        return f"Creating file: {path.split('/')[-1] if path else 'unknown'}"
+
+    if name_lower == "edit":
+        path = tool_input.get("file_path", "")
+        return f"Editing file: {path.split('/')[-1] if path else 'unknown'}"
+
+    if name_lower == "bash":
+        cmd = tool_input.get("command", "")
+        return f"Running: {cmd[:50]}..." if len(cmd) > 50 else f"Running: {cmd}"
+
+    if name_lower == "glob":
+        pattern = tool_input.get("pattern", "")
+        return f"Searching for files: {pattern}"
+
+    if name_lower == "grep":
+        pattern = tool_input.get("pattern", "")
+        return f"Searching for: {pattern[:30]}..."
+
+    return f"Executing: {tool_name}"
 
 
 class ClaudeCodeGenerator(CodeGenerator):
@@ -78,7 +202,7 @@ class ClaudeCodeGenerator(CodeGenerator):
         self, prompt: str, session: Session, config: CodeGeneratorConfig
     ) -> AsyncGenerator[Dict, None]:
         """Run Claude Code CLI."""
-        from .claude_runner import run_claude_code, ClaudeRunnerConfig
+        from .claude_runner import ClaudeRunnerConfig, run_claude_code
 
         # Convert to Claude-specific config
         claude_config = ClaudeRunnerConfig(
@@ -133,196 +257,172 @@ class ClaudeCodeGenerator(CodeGenerator):
 class OpenCodeGenerator(CodeGenerator):
     """OpenCode generator implementation."""
 
-    def find_opencode_binary(self) -> Optional[str]:
-        """Find the OpenCode binary.
-
-        Returns:
-            Path to opencode binary if found, None otherwise.
-        """
-        import shutil
-        import os
-
-        # Check if opencode is in PATH
-        opencode_path = shutil.which("opencode")
-        if opencode_path:
-            return opencode_path
-
-        # Check common installation locations
-        common_paths = [
-            os.path.expanduser("~/.opencode/bin/opencode"),
-            "/usr/local/bin/opencode",
-            "/opt/homebrew/bin/opencode",
-        ]
-
-        for path in common_paths:
-            if os.path.isfile(path) and os.access(path, os.X_OK):
-                return path
-
-        return None
-
     async def run(
         self, prompt: str, session: Session, config: CodeGeneratorConfig
-    ) -> AsyncGenerator[Dict, None]:
-        """Run OpenCode."""
-        import asyncio
-        import json
-        import logging
-        import os
+    ) -> AsyncGenerator[dict, None]:
+        """Run OpenCode via HTTP API and stream parsed events."""
+        opencode_config = OpenCodeRunnerConfig(
+            working_directory=config.working_directory,
+            timeout=config.timeout,
+            port=settings.opencode_default_port,
+            model_id=settings.default_model,
+        )
 
-        from openbb_ai import message_chunk, reasoning_step
-        from .output_parser import ParsedEvent
-        from .session_manager import session_manager
-
-        logger = logging.getLogger(__name__)
-
-        opencode_binary = self.find_opencode_binary()
-        if not opencode_binary:
+        server_ok, server_result = await ensure_opencode_server(opencode_config)
+        if not server_ok:
             yield reasoning_step(
                 event_type="ERROR",
-                message="OpenCode binary not found",
-                details={"error": "Please install OpenCode and add it to your PATH"},
+                message="OpenCode server unavailable",
+                details={"error": server_result},
             ).model_dump()
-            yield message_chunk("OpenCode is not installed. Please install it and try again.").model_dump()
             return
 
-        # Determine working directory
-        cwd = config.working_directory
-        if not cwd:
-            cwd = os.getcwd()
-
-        # Build command
-        cmd = [
-            opencode_binary,
-            "run",
-            prompt,
-        ]
-
-        logger.info(f"Starting OpenCode: cwd={cwd}, session={session.session_id}")
-        logger.debug(f"Command: {' '.join(cmd[:5])}...")
+        base_url = server_result
+        opencode_session_id = session.opencode_session_id
 
         yield reasoning_step(
             event_type="INFO",
             message="Starting OpenCode execution",
             details={
                 "session_id": session.session_id,
-                "working_dir": cwd,
+                "opencode_session_id": opencode_session_id,
+                "continued": session.is_continued,
             },
         ).model_dump()
 
         try:
             await session_manager.acquire_process_lock()
 
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd,
-                limit=10 * 1024 * 1024,  # 10MB buffer limit
-            )
+            async with httpx.AsyncClient(timeout=config.timeout) as client:
 
-            session_manager.set_current_process(process, session.session_id)
+                async def _create_new_session() -> Optional[str]:
+                    """Create a fresh OpenCode session, returning its ID or None on failure."""
+                    create_resp = await client.post(
+                        f"{base_url}/session", json={"modelID": settings.default_model}
+                    )
+                    if create_resp.status_code != 200:
+                        return None
+                    return create_resp.json().get("id")
 
-            stderr_lines: list[str] = []
-
-            async def read_stderr():
-                if process.stderr:
-                    async for line in process.stderr:
-                        if line:
-                            stderr_lines.append(line.decode("utf-8"))
-
-            stderr_task = asyncio.create_task(read_stderr())
-
-            logger.info(f"OpenCode process started with PID {process.pid}")
-
-            if process.stdout:
-                line_count = 0
-                async for line in process.stdout:
-                    if not line:
-                        continue
-
-                    line_count += 1
+                if opencode_session_id:
                     try:
-                        line_str = line.decode("utf-8").strip()
-                        if not line_str:
-                            continue
+                        check_resp = await client.get(
+                            f"{base_url}/session/{opencode_session_id}",
+                            timeout=5.0,
+                        )
+                        if check_resp.status_code != 200:
+                            logger.warning(
+                                f"Cached OpenCode session {opencode_session_id} "
+                                f"no longer exists (HTTP {check_resp.status_code}). "
+                                "Creating a new session."
+                            )
+                            opencode_session_id = None
+                    except Exception as check_err:
+                        logger.warning(
+                            f"Could not validate cached session: {check_err}. "
+                            "Creating a new session."
+                        )
+                        opencode_session_id = None
 
-                        # Log every 10th line to track progress
-                        if line_count % 10 == 0:
-                            logger.debug(f"Processed {line_count} lines from OpenCode")
-
-                        # Try to parse as JSON
-                        try:
-                            event = json.loads(line_str)
-                            # Process OpenCode event
-                            if "content" in event:
-                                yield message_chunk(event["content"]).model_dump()
-                            else:
-                                # Fallback to message chunk
-                                yield message_chunk(line_str).model_dump()
-                        except json.JSONDecodeError:
-                            # Non-JSON line, treat as message chunk
-                            yield message_chunk(line_str).model_dump()
-
-                    except Exception as e:
-                        logger.error(f"Parse error on line {line_count}: {e}")
+                if not opencode_session_id:
+                    opencode_session_id = await _create_new_session()
+                    if not opencode_session_id:
                         yield reasoning_step(
-                            event_type="WARNING",
-                            message="Parse error",
-                            details={"error": str(e)[:200]},
+                            event_type="ERROR",
+                            message="Failed to create OpenCode session",
+                            details={},
+                        ).model_dump()
+                        return
+                    session.opencode_session_id = opencode_session_id
+                    logger.info(f"Created OpenCode session: {opencode_session_id}")
+
+                yield reasoning_step(
+                    event_type="INFO",
+                    message="Sending message to OpenCode...",
+                    details={},
+                ).model_dump()
+
+                message_resp = await client.post(
+                    f"{base_url}/session/{opencode_session_id}/message",
+                    json={
+                        "parts": [{"type": "text", "text": prompt}],
+                    },
+                )
+
+                if message_resp.status_code != 200:
+                    yield reasoning_step(
+                        event_type="ERROR",
+                        message="Failed to send message",
+                        details={
+                            "status": message_resp.status_code,
+                            "error": message_resp.text[:500],
+                        },
+                    ).model_dump()
+                    return
+
+                message_data = message_resp.json()
+                parts = message_data.get("parts", [])
+
+                logger.info(f"Received response with {len(parts)} parts")
+
+                for part in parts:
+                    part_type = part.get("type", "")
+
+                    if part_type == "text":
+                        text = part.get("text", "")
+                        if text:
+                            yield message_chunk(text).model_dump()
+
+                    elif part_type == "tool_use":
+                        tool_name = part.get("name", "unknown")
+                        tool_input = part.get("input", {})
+
+                        msg = format_tool_message(tool_name, tool_input)
+                        details = {"tool": tool_name}
+                        if tool_input:
+                            input_str = json.dumps(tool_input)
+                            if len(input_str) > 300:
+                                input_str = input_str[:300] + "..."
+                            details["input"] = input_str
+
+                        yield reasoning_step(
+                            event_type="INFO",
+                            message=msg,
+                            details=details,
                         ).model_dump()
 
-                logger.info(f"OpenCode output complete: {line_count} lines processed")
+                    elif part_type == "tool_result":
+                        content = part.get("content", "")
+                        is_error = part.get("is_error", False)
 
-            try:
-                await asyncio.wait_for(process.wait(), timeout=config.timeout)
-            except asyncio.TimeoutError:
-                process.terminate()
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=5.0)
-                except asyncio.TimeoutError:
-                    process.kill()
-                    await process.wait()
+                        if isinstance(content, str) and len(content) > 500:
+                            display_content = content[:500] + "..."
+                        else:
+                            display_content = str(content)[:500]
 
-                yield reasoning_step(
-                    event_type="ERROR",
-                    message="Execution timed out",
-                    details={"timeout_seconds": config.timeout},
-                ).model_dump()
-                yield message_chunk(f"\n\n**Execution timed out after {config.timeout} seconds.**").model_dump()
-
-            await stderr_task
-
-            if stderr_lines:
-                stderr_text = "".join(stderr_lines)
-                logger.warning(f"OpenCode stderr: {stderr_text[:500]}")
+                        yield reasoning_step(
+                            event_type="ERROR" if is_error else "INFO",
+                            message="Tool failed" if is_error else "Tool completed",
+                            details={"output": display_content},
+                        ).model_dump()
 
                 yield reasoning_step(
-                    event_type="ERROR" if process.returncode != 0 else "WARNING",
-                    message="OpenCode stderr output",
-                    details={"stderr": stderr_text[:1000]},
+                    event_type="INFO",
+                    message="OpenCode completed successfully",
+                    details={},
                 ).model_dump()
-                yield message_chunk(f"\n\n**{'Error' if process.returncode != 0 else 'Warning'}:**\n```\n{stderr_text[:2000]}\n```\n").model_dump()
 
-            yield reasoning_step(
-                event_type="INFO" if process.returncode == 0 else "ERROR",
-                message=f"OpenCode {'completed' if process.returncode == 0 else 'failed'}",
-                details={"exit_code": process.returncode},
-            ).model_dump()
-
-            if process.returncode != 0:
-                yield message_chunk(f"\n\n**OpenCode exited with code {process.returncode}.**\n").model_dump()
-
-        except FileNotFoundError:
+        except httpx.TimeoutException:
             yield reasoning_step(
                 event_type="ERROR",
-                message="OpenCode binary not found",
-                details={"path": opencode_binary},
+                message="Request timed out",
+                details={"timeout_seconds": config.timeout},
             ).model_dump()
-        except PermissionError:
+        except httpx.ConnectError as e:
             yield reasoning_step(
                 event_type="ERROR",
-                message="Permission denied",
-                details={"path": opencode_binary},
+                message="Failed to connect to OpenCode server",
+                details={"error": str(e)},
             ).model_dump()
         except Exception as e:
             logger.exception("Unexpected error in OpenCode runner")
@@ -331,20 +431,13 @@ class OpenCodeGenerator(CodeGenerator):
                 message="Unexpected error",
                 details={"error": str(e)[:500]},
             ).model_dump()
-            # Also emit a user-friendly message
-            yield message_chunk(f"\n\n**Error:** An unexpected error occurred: {str(e)[:200]}\n\n"
-            "This may be due to a tool or MCP server not being available. "
-            "Please try again or check the server logs.").model_dump()
         finally:
             session_manager.set_current_process(None)
             session_manager.release_process_lock()
 
     def check_availability(self) -> tuple[bool, str]:
         """Check if OpenCode is available."""
-        binary = self.find_opencode_binary()
-        if binary:
-            return True, f"OpenCode found at: {binary}"
-        return False, "OpenCode not found. Please install it and add to PATH"
+        return check_opencode_installed()
 
     async def list_models(self) -> List[ModelInfo]:
         """List enabled models via OpenCode server's v2 /api/model endpoint.
@@ -353,23 +446,16 @@ class OpenCodeGenerator(CodeGenerator):
         the /api/model endpoint to discover all configured models, and
         returns a list of only enabled models.
         """
-        import asyncio
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        binary = self.find_opencode_binary()
+        binary = find_opencode_binary()
         if not binary:
             logger.warning("OpenCode binary not found, cannot list models")
             return []
 
-        port = 4096
+        port = settings.opencode_default_port
         base_url = f"http://127.0.0.1:{port}"
 
-        # Check if an OpenCode server is already running
         server_already_running = False
         try:
-            import httpx
             async with httpx.AsyncClient(timeout=3.0) as client:
                 resp = await client.get(f"{base_url}/global/health")
                 server_already_running = resp.status_code == 200
@@ -380,15 +466,18 @@ class OpenCodeGenerator(CodeGenerator):
         if not server_already_running:
             logger.info(f"Starting temporary OpenCode server on port {port}")
             server_process = await asyncio.create_subprocess_exec(
-                binary, "serve", "--port", str(port), "--hostname", "127.0.0.1",
+                binary,
+                "serve",
+                "--port",
+                str(port),
+                "--hostname",
+                "127.0.0.1",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            # Wait for server to be ready
             for _ in range(20):
                 await asyncio.sleep(0.5)
                 try:
-                    import httpx
                     async with httpx.AsyncClient(timeout=3.0) as client:
                         resp = await client.get(f"{base_url}/global/health")
                         if resp.status_code == 200:
@@ -405,9 +494,7 @@ class OpenCodeGenerator(CodeGenerator):
 
         models: List[ModelInfo] = []
         try:
-            import httpx
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # Step 1: Get enabled provider IDs from /api/provider
                 enabled_provider_ids: set = set()
                 provider_resp = await client.get(f"{base_url}/api/provider")
                 if provider_resp.status_code == 200:
@@ -415,11 +502,6 @@ class OpenCodeGenerator(CodeGenerator):
                     if isinstance(providers, list):
                         for p in providers:
                             p_enabled = p.get("enabled")
-                            # ProviderV2Info.enabled anyOf:
-                            #   false (boolean) → explicitly disabled
-                            #   {via:"env"} | {via:"auth"} | {via:"custom"} → enabled
-                            #   None / absent → enabled by default
-                            # Only skip when enabled is explicitly False
                             if p_enabled is False:
                                 continue
                             enabled_provider_ids.add(p.get("id", ""))
@@ -432,23 +514,16 @@ class OpenCodeGenerator(CodeGenerator):
                     logger.warning("No enabled providers found")
                     return []
 
-                # Step 2: Get models and filter by enabled providers + model.enabled
                 resp = await client.get(f"{base_url}/api/model")
                 if resp.status_code != 200:
-                    logger.warning(
-                        f"Failed to fetch models: HTTP {resp.status_code}"
-                    )
+                    logger.warning(f"Failed to fetch models: HTTP {resp.status_code}")
                     return []
 
                 data = resp.json()
-                # ModelV2Info: id, providerID, name, enabled (boolean)
-                # Use strict identity check: only boolean True passes.
-                # This rejects None, 0, "false", "", etc.
                 if isinstance(data, list):
                     for model in data:
                         model_id = model.get("id", "")
                         provider_id = model.get("providerID", "")
-                        # Cross-filter: provider must be enabled AND model must be enabled
                         if provider_id not in enabled_provider_ids:
                             continue
                         if model.get("enabled") is not True:

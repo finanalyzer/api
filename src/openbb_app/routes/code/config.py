@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     claude_timeout: float = 600.0  # 10 minutes for app builds
     claude_skip_permissions: bool = True
 
+    # OpenCode CLI settings
+    opencode_binary: Optional[str] = None
+    opencode_timeout: float = 600.0
+    opencode_default_port: int = 4096
+    default_model: str = "opencode/deepseek-v4-flash:free"
+
     # Logging
     log_level: str = "INFO"
 
@@ -108,6 +114,56 @@ def check_claude_installed() -> tuple[bool, str]:
     )
 
 
+OPENCODE_DEFAULT_PORT = 4096
+
+
+def find_opencode_binary() -> Optional[str]:
+    """Find the OpenCode CLI binary.
+
+    Returns:
+        Path to opencode binary if found, None otherwise.
+    """
+    import shutil
+
+    if settings.opencode_binary:
+        if os.path.isfile(settings.opencode_binary) and os.access(
+            settings.opencode_binary, os.X_OK
+        ):
+            return settings.opencode_binary
+
+    opencode_path = shutil.which("opencode")
+    if opencode_path:
+        return opencode_path
+
+    common_paths = [
+        os.path.expanduser("~/.opencode/bin/opencode"),
+        os.path.expanduser("~/.local/bin/opencode"),
+        os.path.expanduser("~/go/bin/opencode"),
+        "/usr/local/bin/opencode",
+        "/opt/homebrew/bin/opencode",
+    ]
+
+    for path in common_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+
+    return None
+
+
+def check_opencode_installed() -> tuple[bool, str]:
+    """Check if OpenCode CLI is installed and accessible.
+
+    Returns:
+        Tuple of (is_installed, message).
+    """
+    binary = find_opencode_binary()
+    if binary:
+        return True, f"OpenCode CLI found at: {binary}"
+    return False, (
+        "OpenCode CLI not found. Please install it from: https://opencode.ai"
+    )
+
+
 def check_target_repo() -> tuple[bool, str]:
     """Check if target repo is configured and exists.
 
@@ -115,7 +171,10 @@ def check_target_repo() -> tuple[bool, str]:
         Tuple of (exists, message).
     """
     if not settings.target_repo_path:
-        return False, "Target repo not configured (set OPENBB_APP_BUILDER_TARGET_REPO_PATH)"
+        return (
+            False,
+            "Target repo not configured (set OPENBB_APP_BUILDER_TARGET_REPO_PATH)",
+        )
 
     path = settings.resolved_target_repo
     if path and path.exists():

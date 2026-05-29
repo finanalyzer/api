@@ -88,7 +88,7 @@ class DashboardResponse(DashboardBase):
         "type": "table",
         "category": "Dashboard",
         "widgetId": "dashboard/list",
-        "endpoint": "/api/v1/dashboard",
+        "endpoint": "/v1/dashboard",
         "runButton": True,
         "gridData": {"w": 50, "h": 20},
         "data": {

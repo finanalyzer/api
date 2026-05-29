@@ -29,7 +29,11 @@ def get_app(openbb_api: bool = True):
         from openbb_app.core.config import config
 
         app = FastAPI(
-            title=config.title, description=config.description, version="0.1.2"
+            title=config.title, description=config.description, version="0.1.2",
+            docs_url="/api/docs",
+            redoc_url="/api/redoc",
+            openapi_url="/api/openapi.json",
+            swagger_ui_oauth2_redirect_url="/api/docs/oauth2-redirect"
         )
 
         logger.info(f"CORS: {config.cors_origins}")
@@ -68,7 +72,7 @@ def start_api(openbb_api: bool = True):
 app = get_app(openbb_api=using_openbb_api)
 
 
-@app.get("/apps.json")
+@app.get("/api/apps.json")
 def get_apps():
     """Apps configuration file for the OpenBB Workspace
 
@@ -79,7 +83,7 @@ def get_apps():
     return list(TEMPLATES.values())
 
 
-@app.get("/agents.json")
+@app.get("/api/agents.json")
 def agents_json() -> JSONResponse:
     """Return agent configuration for OpenBB Copilot discovery."""
     return JSONResponse(
@@ -92,7 +96,7 @@ def agents_json() -> JSONResponse:
                     "app generation."
                 ),
                 "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Anthropic_logo.svg/1280px-Anthropic_logo.svg.png",
-                "endpoints": {"query": "/v1/query"},
+                "endpoints": {"query": "/api/v1/query"},
                 "features": {
                     "streaming": True,
                     "widget-dashboard-select": True,
@@ -105,7 +109,7 @@ def agents_json() -> JSONResponse:
 
 if not using_openbb_api:
 
-    @app.get("/widgets.json")
+    @app.get("/api/widgets.json")
     def get_widgets():
         """Get all registered widgets"""
         # return list(WIDGETS.values())
@@ -114,7 +118,7 @@ if not using_openbb_api:
 
 app.include_router(
     agent_router,
-    prefix="/v1",
+    prefix="/api/v1",
 )
 
 app.include_router(

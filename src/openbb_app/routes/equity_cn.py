@@ -164,7 +164,7 @@ def get_historical_data(
         "category": "Equity",
         "type": "html",
         "widgetId": "equity/screener",
-        "endpoint": "/api/v1/cn/equity/screener",
+        "endpoint": "/v1/cn/equity/screener",
         "gridData": {"w": 40, "h": 30},
         "source": "A股",
         "params": [

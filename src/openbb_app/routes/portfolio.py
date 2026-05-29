@@ -191,7 +191,7 @@ class TransactionResponse(TransactionBase):
         "type": "table",
         "category": "Equity",
         "widgetId": "portfolio/stocks",
-        "endpoint": "/api/v1/portfolio/stocks",
+        "endpoint": "/v1/portfolio/stocks",
         "runButton": True,
         "gridData": {"w": 50, "h": 20},
         "data": {
@@ -317,7 +317,7 @@ class TransactionResponse(TransactionBase):
                 "value": "600325.SH",
                 "label": "Symbol",
                 "type": "endpoint",
-                "optionsEndpoint": "/api/v1/portfolio/stocks",
+                "optionsEndpoint": "/v1/portfolio/stocks",
                 "multiSelect": False,
                 "show": True,
             },
@@ -325,7 +325,7 @@ class TransactionResponse(TransactionBase):
                 "paramName": "form",
                 "description": "Add a new stock to portfolio",
                 "type": "form",
-                "endpoint": "/api/v1/portfolio/stocks",
+                "endpoint": "/v1/portfolio/stocks",
                 "inputParams": [
                     {
                         "paramName": "symbol",
@@ -549,7 +549,7 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
         "type": "table",
         "category": "Equity",
         "widgetId": "portfolio/transactions",
-        "endpoint": "/api/v1/portfolio/transactions",
+        "endpoint": "/v1/portfolio/transactions",
         "runButton": True,
         "gridData": {"w": 50, "h": 20},
         "data": {
@@ -658,7 +658,7 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                 "value": "600325.SH",
                 "label": "Symbol",
                 "type": "endpoint",
-                "optionsEndpoint": "/api/v1/portfolio/stocks",
+                "optionsEndpoint": "/v1/portfolio/stocks",
                 "multiSelect": False,
                 "show": True,
             },
@@ -682,7 +682,7 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                 "paramName": "form",
                 "description": "Add a new transaction",
                 "type": "form",
-                "endpoint": "/api/v1/portfolio/transactions",
+                "endpoint": "/v1/portfolio/transactions",
                 "inputParams": [
                     {
                         "paramName": "date",
@@ -941,7 +941,7 @@ def get_portfolio_symbols():
         "category": "Equity",
         "type": "markdown",
         "widgetId": "portfolio/key_metrics",
-        "endpoint": "/api/v1/portfolio/key_metrics",
+        "endpoint": "/v1/portfolio/key_metrics",
         "gridData": {"w": 10, "h": 12},
         "data": {
             "table": {
@@ -960,7 +960,7 @@ def get_portfolio_symbols():
                 "label": "Symbol",
                 "value": "600325.SH",
                 "description": "Symbol to get company facts",
-                "optionsEndpoint": "/api/v1/portfolio/stocks",
+                "optionsEndpoint": "/v1/portfolio/stocks",
             }
         ],
     }
@@ -984,7 +984,7 @@ def get_cn_key_metrics(symbol: str):
         "category": "Equity",
         "type": "table",
         "widgetId": "portfolio/news",
-        "endpoint": "/api/v1/portfolio/news",
+        "endpoint": "/v1/portfolio/news",
         "gridData": {"w": 40, "h": 8},
         "data": {
             "table": {
@@ -1039,7 +1039,7 @@ def get_cn_key_metrics(symbol: str):
                 "value": "600325.SH",
                 "description": "Stock symbol to get news",
                 "multiSelect": False,
-                "optionsEndpoint": "/api/v1/portfolio/stocks",
+                "optionsEndpoint": "/v1/portfolio/stocks",
             },
             {
                 "type": "number",

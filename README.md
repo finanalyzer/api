@@ -20,6 +20,54 @@ Start the virtual environment and run the following command to start the API:
 uvicorn openbb_app.main:app
 ```
 
+## Using **Docker**
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed
+- [Docker Compose](https://docs.docker.com/compose/install/) installed
+
+### Quick Start
+
+```bash
+# Build the Docker image
+docker build -t openbb-app .
+
+# Start the service (detached mode)
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the service
+docker compose down
+```
+
+### Accessing the Application
+
+Once the container is running, access the API at:
+- API: http://localhost:8001/api/docs
+- Health Check: http://localhost:8001/api/openapi.json
+
+### Environment Configuration
+
+Create a `.env` file in the project root with your API keys:
+
+```env
+TUSHARE_API_KEY=your_tushare_api_key
+AGENT_HOST_URL=your_agent_host_url
+APP_API_KEY=your_app_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
+
+### Development with Live Reload
+
+The Docker setup supports live code reloading. Changes to source files on your host machine will be reflected immediately without rebuilding the image, as long as the volume mount is active.
+
+### Container Security
+
+The container runs as a non-root user (`appuser`) for enhanced security. The application listens on port 8001 inside the container, which is mapped to the same port on the host.
+
 ## Using **TestPyPI**
 
 ## 1. Configure `uv` for TestPyPI

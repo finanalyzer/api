@@ -144,11 +144,13 @@ def prompt_for_api_key(provider: str) -> Optional[str]:
 def configure_api_keys() -> Tuple[Optional[str], Optional[str]]:
     """
     Check and configure API keys for akshare and tushare.
-    Prompts user for missing keys and stores them in OpenBB credentials.
+    First attempts to retrieve keys from environment variables,
+    then prompts user for missing keys and stores them in OpenBB credentials.
 
     Returns:
         Tuple of (akshare_api_key, tushare_api_key) - None if not configured
     """
+    import os
     from openbb import obb
     from openbb_core.app.service.user_service import UserService
 
@@ -166,6 +168,24 @@ def configure_api_keys() -> Tuple[Optional[str], Optional[str]]:
         tushare_key = obb.user.credentials.tushare_api_key.get_secret_value()
     except Exception:
         tushare_key = None
+
+    if not akshare_key:
+        try:
+            akshare_key = os.environ.get("AKSHARE_API_KEY", "").strip()
+            if akshare_key:
+                print("✅ AkShare API key found in environment variables.")
+        except Exception as e:
+            logger.error(f"Error reading AKSHARE_API_KEY from environment: {e}")
+            akshare_key = None
+
+    if not tushare_key:
+        try:
+            tushare_key = os.environ.get("TUSHARE_API_KEY", "").strip()
+            if tushare_key:
+                print("✅ Tushare API key found in environment variables.")
+        except Exception as e:
+            logger.error(f"Error reading TUSHARE_API_KEY from environment: {e}")
+            tushare_key = None
 
     missing_keys = []
     if not akshare_key:

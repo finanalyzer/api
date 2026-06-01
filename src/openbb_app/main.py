@@ -20,6 +20,9 @@ using_openbb_api = False
 
 
 def get_app(openbb_api: bool = True):
+    from openbb_app.core.utils import check_api_keys
+    check_api_keys()
+
     """Get the FastAPI instance"""
     if openbb_api:
         from openbb_platform_api.main import app
@@ -29,7 +32,7 @@ def get_app(openbb_api: bool = True):
         from openbb_app.core.config import config
 
         app = FastAPI(
-            title=config.title, description=config.description, version="0.1.2",
+            title=config.title, description=config.description, version="1.5.2",
             docs_url="/api/docs",
             redoc_url="/api/redoc",
             openapi_url="/api/openapi.json",
@@ -145,9 +148,6 @@ def start():
     We point uvicorn to the string 'openbb_app.main:app'
     so it can find the FastAPI instance.
     """
-    from openbb_app.core.utils import check_api_keys
-
-    check_api_keys()
 
     print("🚀 Starting OpenBB Backend on http://0.0.0.0:8001")
     start_api(openbb_api=using_openbb_api)

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  openbb-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - TUSHARE_API_KEY=${TUSHARE_API_KEY:-}
+      - AGENT_HOST_URL=${AGENT_HOST_URL:-}
+      - APP_API_KEY=${APP_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/openapi.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    user: appuser
+    command: ["uv", "run", "uvicorn", "openbb_app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

@@ -528,17 +528,59 @@ class DatabaseManager:
             conn.close()
     
     def delete_portfolio_stock(self, symbol: str):
-        """删除自选股"""
+        """删除自选股（支持级联删除关联交易记录）"""
         conn = sqlite3.connect(self.db_path, timeout=30.0)
         cursor = conn.cursor()
         
         try:
+            # 启用外键约束（SQLite默认禁用）
+            cursor.execute("PRAGMA foreign_keys=ON;")
+            
+            # 开始事务
+            conn.execute('BEGIN TRANSACTION')
+            logger.info(f"Starting transaction to delete portfolio stock: {symbol}")
+            
+            # 查询关联的交易记录
+            cursor.execute("SELECT COUNT(*) FROM transactions WHERE symbol = ?", (symbol,))
+            transaction_count = cursor.fetchone()[0]
+            logger.info(f"Found {transaction_count} associated transactions for symbol: {symbol}")
+            
+            # 如果有交易记录，先记录详细信息
+            if transaction_count > 0:
+                cursor.execute("SELECT id, date, transaction_type, quantity, price FROM transactions WHERE symbol = ?", (symbol,))
+                transactions = cursor.fetchall()
+                logger.info(f"Transactions to be deleted for {symbol}:")
+                for trans in transactions:
+                    logger.info(f"  - Transaction ID: {trans[0]}, Date: {trans[1]}, Type: {trans[2]}, Quantity: {trans[3]}, Price: {trans[4]}")
+            
+            # 删除自选股记录（会触发级联删除交易记录）
             cursor.execute("DELETE FROM portfolio_stocks WHERE symbol = ?", (symbol,))
+            stock_deleted = cursor.rowcount > 0
+            
+            if stock_deleted:
+                logger.info(f"Successfully deleted portfolio stock: {symbol}")
+                # 验证交易记录是否被级联删除
+                cursor.execute("SELECT COUNT(*) FROM transactions WHERE symbol = ?", (symbol,))
+                remaining_transactions = cursor.fetchone()[0]
+                if remaining_transactions == 0:
+                    logger.info(f"All {transaction_count} associated transactions have been cascading deleted")
+                else:
+                    logger.warning(f"WARNING: {remaining_transactions} transactions still remain after cascading delete for {symbol}")
+            
+            # 提交事务
             conn.commit()
-            return cursor.rowcount > 0
+            logger.info(f"Transaction committed successfully for deleting stock: {symbol}")
+            
+            return {
+                'success': stock_deleted,
+                'symbol': symbol,
+                'transactions_deleted': transaction_count
+            }
         except Exception as e:
-            logger.error(f"Error deleting portfolio stock: {e}")
+            # 回滚事务
             conn.rollback()
+            logger.error(f"Error deleting portfolio stock {symbol}: {e}")
+            logger.info(f"Transaction rolled back for deleting stock: {symbol}")
             raise
         finally:
             conn.close()

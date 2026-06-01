@@ -144,6 +144,16 @@ class StockResponse(StockBase):
         from_attributes = True
 
 
+class StockDeleteRequest(BaseModel):
+    symbol: str = Field(..., description="股票代码")
+
+
+class StockDeleteResponse(BaseModel):
+    message: str = Field(..., description="操作结果消息")
+    symbol: str = Field(..., description="被删除的股票代码")
+    transactions_deleted: int = Field(0, description="级联删除的交易记录数量")
+
+
 # 交易记录模型
 class TransactionBase(BaseModel):
     date: str = Field(..., description="交易日期")
@@ -202,8 +212,8 @@ class TransactionResponse(TransactionBase):
                 "columnsDefs": [
                     {
                         "field": "symbol",
-                        "headerName": "Symbol",
-                        "headerTooltip": "Stock symbol code",
+                        "headerName": "股票代码",
+                        "headerTooltip": "股票代码（例如：000001.SZ,600000.SH）",
                         "cellDataType": "text",
                         "pinned": "left",
                         "renderFn": "cellOnClick",
@@ -214,50 +224,50 @@ class TransactionResponse(TransactionBase):
                     },
                     {
                         "field": "name",
-                        "headerName": "Name",
-                        "headerTooltip": "Stock name",
+                        "headerName": "股票名称",
+                        "headerTooltip": "股票名称",
                         "cellDataType": "text",
                     },
                     {
                         "field": "current_price",
-                        "headerName": "Current Price",
-                        "headerTooltip": "Current market price",
+                        "headerName": "当前价格",
+                        "headerTooltip": "当前市场价格",
                         "cellDataType": "number",
                     },
                     {
                         "field": "avg_cost",
-                        "headerName": "Avg Cost",
-                        "headerTooltip": "Average cost basis",
+                        "headerName": "平均成本",
+                        "headerTooltip": "平均成本",
                         "cellDataType": "number",
                     },
                     {
                         "field": "quantity",
-                        "headerName": "Quantity",
-                        "headerTooltip": "Number of shares held",
+                        "headerName": "持仓数量",
+                        "headerTooltip": "持仓数量",
                         "cellDataType": "number",
                     },
                     {
                         "field": "total_value",
-                        "headerName": "Total Value",
-                        "headerTooltip": "Total market value of holdings",
+                        "headerName": "持仓总价值",
+                        "headerTooltip": "持仓总价值",
                         "cellDataType": "number",
                     },
                     {
                         "field": "fifty_two_week_low",
-                        "headerName": "52W Low",
-                        "headerTooltip": "52-week low price",
+                        "headerName": "52周最低价",
+                        "headerTooltip": "52周最低价",
                         "cellDataType": "number",
                     },
                     {
                         "field": "fifty_two_week_high",
-                        "headerName": "52W High",
-                        "headerTooltip": "52-week high price",
+                        "headerName": "52周最高价",
+                        "headerTooltip": "52周最高价",
                         "cellDataType": "number",
                     },
                     {
                         "field": "dividend_yield",
-                        "headerName": "Dividend Yield",
-                        "headerTooltip": "Annual dividend yield percentage",
+                        "headerName": "分红收益率",
+                        "headerTooltip": "分红收益率",
                         "formatterFn": "percent",
                         "cellDataType": "number",
                         "renderFn": "columnColor",
@@ -274,14 +284,14 @@ class TransactionResponse(TransactionBase):
                     },
                     {
                         "field": "latest_dividend",
-                        "headerName": "Latest Dividend",
-                        "headerTooltip": "Most recent dividend payment",
+                        "headerName": "最新分红金额",
+                        "headerTooltip": "最新分红金额",
                         "cellDataType": "number",
                     },
                     {
                         "field": "strategy",
-                        "headerName": "Strategy",
-                        "headerTooltip": "Investment strategy recommendation",
+                        "headerName": "投资策略",
+                        "headerTooltip": "投资策略",
                         "cellDataType": "text",
                         "renderFn": "columnColor",
                         "renderFnParams": {
@@ -315,15 +325,15 @@ class TransactionResponse(TransactionBase):
                 "description": "Filter by stock symbol",
                 "type": "text",
                 "value": "600325.SH",
-                "label": "Symbol",
+                "label": "股票代码",
                 "type": "endpoint",
                 "optionsEndpoint": "/v1/portfolio/stocks",
                 "multiSelect": False,
                 "show": True,
             },
             {
-                "paramName": "form",
-                "description": "Add a new stock to portfolio",
+                "paramName": "添加",
+                "description": "添加股票到组合",
                 "type": "form",
                 "endpoint": "/v1/portfolio/stocks",
                 "inputParams": [
@@ -331,24 +341,64 @@ class TransactionResponse(TransactionBase):
                         "paramName": "symbol",
                         "type": "text",
                         "value": "",
-                        "label": "Symbol",
-                        "description": "Stock symbol (e.g., 000001.SZ, 600000.SH)",
+                        "label": "股票代码",
+                        "description": "股票代码",
                     },
                     {
                         "paramName": "name",
                         "type": "text",
                         "value": "",
-                        "label": "Name",
-                        "description": "Stock name",
+                        "label": "股票名称",
+                        "description": "股票名称",
                     },
                     {
                         "paramName": "add_stock",
                         "type": "button",
                         "value": True,
-                        "label": "Add Stock",
+                        "label": "添加",
                         "description": "Add a new stock to the portfolio",
                     },
                 ],
+            },
+            {
+                "paramName": "删除",
+                "description": "删除股票从组合",
+                "type": "form",
+                "endpoint": "/v1/portfolio/delete-stock",
+                "inputParams": [
+                    {
+                        "paramName": "symbol",
+                        "type": "text",
+                        "value": "",
+                        "label": "股票代码",
+                        "description": "股票代码",
+                        "validation": {
+                            "required": True,
+                            "pattern": r"^\d{6}\.(SZ|SH|BJ)$|^\d{4,5}\.HK$",
+                            "patternMessage": "股票代码格式无效，示例：000001.SZ、600000.SH、00700.HK",
+                        },
+                    },
+                    {
+                        "paramName": "delete_stock",
+                        "type": "button",
+                        "value": True,
+                        "label": "删除",
+                        "description": "删除股票从组合",
+                    },
+                    {
+                        "paramName": "cancel",
+                        "type": "button",
+                        "value": False,
+                        "label": "取消",
+                        "description": "取消删除操作",
+                    },
+                ],
+                "successMessage": "股票删除成功，列表已刷新",
+                "errorMessages": {
+                    "404": "股票代码不存在于自选股中",
+                    "400": "股票代码格式无效",
+                    "500": "删除股票时发生错误，请稍后重试",
+                },
             },
         ],
     }
@@ -523,21 +573,111 @@ def update_stock(
         raise HTTPException(status_code=500, detail="Failed to update stock")
 
 
+def _delete_stock_by_symbol(symbol: str) -> dict:
+    """
+    删除自选股的业务逻辑（包含级联删除关联交易记录）
+
+    Args:
+        symbol: 股票代码
+
+    Returns:
+        删除结果字典，包含：
+        - success: 是否成功删除
+        - symbol: 被删除的股票代码
+        - transactions_deleted: 级联删除的交易记录数量
+
+    Raises:
+        HTTPException: 当股票不存在或删除失败时抛出异常
+    """
+    symbol_b, symbol_f, market = normalize_symbol(symbol)
+    normalized_symbol = symbol_f
+    logger.info(f"Preparing to delete portfolio stock: {normalized_symbol}")
+    
+    db_manager = get_db_manager()
+    result = db_manager.delete_portfolio_stock(normalized_symbol)
+    
+    if not result['success']:
+        logger.warning(f"Stock not found in portfolio: {normalized_symbol}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Stock with symbol {normalized_symbol} not found in portfolio",
+        )
+    
+    logger.info(f"Successfully deleted portfolio stock: {normalized_symbol}")
+    logger.info(f"Associated transactions deleted: {result['transactions_deleted']}")
+    
+    return result
+
+
 @portfolio_router.delete("/portfolio/stocks/{symbol}")
 def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
-    """删除自选股"""
+    """删除自选股（通过DELETE方法）"""
     try:
-        symbol_b, symbol_f, market = normalize_symbol(symbol)
-        symbol = symbol_f
-        db_manager = get_db_manager()
-        success = db_manager.delete_portfolio_stock(symbol)
-        if not success:
-            raise HTTPException(status_code=404, detail="Stock not found")
-        return {"message": "Stock deleted successfully"}
+        result = _delete_stock_by_symbol(symbol)
+        message = f"Stock {result['symbol']} deleted successfully"
+        if result['transactions_deleted'] > 0:
+            message += f", including {result['transactions_deleted']} associated transactions"
+        logger.info(message)
+        return {
+            "message": message,
+            "symbol": result['symbol'],
+            "transactions_deleted": result['transactions_deleted']
+        }
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting stock: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete stock")
+
+
+@portfolio_router.post(
+    "/portfolio/delete-stock",
+    response_model=StockDeleteResponse,
+    summary="删除自选股",
+    description="通过POST方法删除自选股，提供与DELETE方法相同的功能，但使用请求体传递股票代码",
+    responses={
+        200: {"description": "股票删除成功"},
+        400: {"description": "股票代码格式无效"},
+        404: {"description": "股票不存在于自选股中"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+def delete_stock_post(request: StockDeleteRequest):
+    """
+    删除自选股（通过POST方法）
+
+    此端点提供与DELETE方法相同的功能，但允许通过HTML表单提交。
+    适用于需要通过Input Form进行删除操作的场景。
+    删除股票时会自动级联删除关联的交易记录。
+
+    Args:
+        request: 包含待删除股票代码的请求体
+
+    Returns:
+        StockDeleteResponse: 包含操作结果消息、被删除的股票代码和级联删除的交易记录数量
+    """
+    try:
+        if not validate_symbol_format(request.symbol):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid symbol format: {request.symbol}. Expected format: 000001.SZ, 600000.SH, or 00700.HK",
+            )
+        logger.info(f"Deleting stock via POST: {request.symbol}")
+        result = _delete_stock_by_symbol(request.symbol)
+        
+        message = f"Stock {result['symbol']} deleted successfully"
+        if result['transactions_deleted'] > 0:
+            message += f", including {result['transactions_deleted']} associated transactions"
+        
+        return StockDeleteResponse(
+            message=message,
+            symbol=result['symbol'],
+            transactions_deleted=result['transactions_deleted'],
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting stock via POST: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete stock")
 
 
@@ -679,8 +819,8 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                 "optional": True,
             },
             {
-                "paramName": "form",
-                "description": "Add a new transaction",
+                "paramName": "添加",
+                "description": "添加交易记录",
                 "type": "form",
                 "endpoint": "/v1/portfolio/transactions",
                 "inputParams": [
@@ -688,61 +828,61 @@ def delete_stock(symbol: str = FastAPIPath(..., description="股票代码")):
                         "paramName": "date",
                         "type": "text",
                         "value": "",
-                        "label": "Date",
-                        "description": "Transaction date (e.g., 2024-01-01)",
+                        "label": "日期",
+                        "description": "交易日期（例如：2024-01-01）",
                     },
                     {
                         "paramName": "symbol",
                         "type": "text",
                         "value": "",
-                        "label": "Symbol",
-                        "description": "Stock symbol (e.g., 000001.SZ, 600000.SH)",
+                        "label": "股票代码",
+                        "description": "股票代码（例如：000001.SZ, 600000.SH）",
                     },
                     {
                         "paramName": "name",
                         "type": "text",
                         "value": "",
-                        "label": "Name",
-                        "description": "Stock name",
+                        "label": "股票名称",
+                        "description": "股票名称",
                     },
                     {
                         "paramName": "price",
                         "type": "number",
                         "value": 0,
-                        "label": "Price",
-                        "description": "Transaction price per share",
+                        "label": "价格",
+                        "description": "股票价格",
                     },
                     {
                         "paramName": "quantity",
                         "type": "number",
                         "value": 0,
-                        "label": "Quantity",
-                        "description": "Number of shares",
+                        "label": "数量",
+                        "description": "股票数量",
                     },
                     {
                         "paramName": "total_value",
                         "type": "number",
                         "value": 0,
-                        "label": "Total Value",
-                        "description": "Total transaction value including fees",
+                        "label": "总价值",
+                        "description": "总价值",
                     },
                     {
                         "paramName": "transaction_type",
                         "type": "text",
                         "value": "买入",
-                        "label": "Type",
-                        "description": "Transaction type (买入/卖出)",
+                        "label": "交易类型",
+                        "description": "交易类型（买入/卖出）",
                         "options": [
                             {"label": "买入", "value": "买入"},
                             {"label": "卖出", "value": "卖出"},
                         ],
                     },
                     {
-                        "paramName": "add_transaction",
+                        "paramName": "添加",
                         "type": "button",
                         "value": True,
-                        "label": "Add Transaction",
-                        "description": "Add a new transaction record",
+                        "label": "添加",
+                        "description": "添加交易记录",
                     },
                 ],
             },

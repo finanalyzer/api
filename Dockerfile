@@ -65,7 +65,6 @@ RUN mkdir -p /etc/opencode && \
         '      "command": ["vibe-trading-mcp"],' \
         '      "enabled": true,' \
         '      "environment": {' \
-        '        "VIBE_TRADING_ENABLE_SHELL_TOOLS": "false",' \
         '        "VIBE_TRADING_HOME": "'${VIBE_TRADING_HOME}'"' \
         '      }' \
         '    }' \

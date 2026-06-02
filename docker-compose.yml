@@ -19,7 +19,9 @@ services:
       # and the exact same on-disk file vibe-trading would otherwise
       # expect. Skip with `- ./:/app/.env-missing` style comment if you
       # want to fall back to environment variables only.
-      - ./.env:${VIBE_TRADING_AGENT_DIR:-/usr/local/lib/python3.13/site-packages}/src/agent/.env:ro
+      - ./.env:/home/appuser/.vibe-trading/.env:ro
+      # Bind-mount Vibe-Trading source code for development
+      - ../Vibe-Trading:/opt/vibe-trading
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1

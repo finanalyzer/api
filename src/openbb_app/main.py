@@ -8,6 +8,7 @@ from openbb_app.routes.dashboard import dashboard_router
 from openbb_app.routes.equity_cn import equity_cn_router
 from openbb_app.routes.portfolio import portfolio_router
 from openbb_app.routes.agents import agent_router
+from importlib.metadata import version, PackageNotFoundError
 
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
@@ -17,7 +18,15 @@ import sys
 from pathlib import Path
 
 using_openbb_api = False
+try:
+    # IMPORTANT: Use the "distribution name" (name = "my-project" in pyproject.toml), 
+    # NOT the import name.
+    __version__ = version("openbb-app") 
+except PackageNotFoundError:
+    # Package is not installed
+    __version__ = "unknown"
 
+print(f"openbb-app version: {__version__}")
 
 def get_app(openbb_api: bool = True):
     from openbb_app.core.utils import check_api_keys
@@ -32,7 +41,7 @@ def get_app(openbb_api: bool = True):
         from openbb_app.core.config import config
 
         app = FastAPI(
-            title=config.title, description=config.description, version="1.5.2",
+            title=config.title, description=config.description, version=__version__,
             docs_url="/api/docs",
             redoc_url="/api/redoc",
             openapi_url="/api/openapi.json",

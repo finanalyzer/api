@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field, field_validator
 class AppConfig(BaseModel):
     """Application configuration loaded from environment variables."""
 
-    title: str = Field(default="FinApp", description="The title of the app.")
+    title: str = Field(default="openbb-app", description="The title of the app.")
     description: str = Field(
-        default="FinApp API for OpenBB Workspace",
+        default="openbb-app API for OpenBB Workspace",
         description="The description of the app.",
     )
     agent_host_url: str = Field(
@@ -26,6 +26,7 @@ class AppConfig(BaseModel):
     cors_origins: list[str] = Field(
         default=[
             "https://pro.openbb.co",
+            "https://finanalyzer.github.io",
             "http://localhost:1420",
             "http://localhost:5173",
             "http://localhost:5174",

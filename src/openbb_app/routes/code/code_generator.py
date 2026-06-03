@@ -260,7 +260,7 @@ class OpenCodeGenerator(CodeGenerator):
     async def run(
         self, prompt: str, session: Session, config: CodeGeneratorConfig
     ) -> AsyncGenerator[dict, None]:
-        """Run OpenCode via HTTP API and stream parsed events."""
+        """Run OpenCode via HTTP API with fallback to CLI."""
         opencode_config = OpenCodeRunnerConfig(
             working_directory=config.working_directory,
             timeout=config.timeout,
@@ -270,11 +270,10 @@ class OpenCodeGenerator(CodeGenerator):
 
         server_ok, server_result = await ensure_opencode_server(opencode_config)
         if not server_ok:
-            yield reasoning_step(
-                event_type="ERROR",
-                message="OpenCode server unavailable",
-                details={"error": server_result},
-            ).model_dump()
+            logger.warning(f"OpenCode server not available: {server_result}")
+            # Fallback to CLI if server is not available
+            async for item in self._run_via_cli(prompt, session, config):
+                yield item
             return
 
         base_url = server_result
@@ -291,16 +290,25 @@ class OpenCodeGenerator(CodeGenerator):
         ).model_dump()
 
         try:
+            logger.info("Acquiring process lock...")
             await session_manager.acquire_process_lock()
+            logger.info("Process lock acquired, creating HTTP client...")
 
             async with httpx.AsyncClient(timeout=config.timeout) as client:
+                logger.info("HTTP client created, creating session...")
 
                 async def _create_new_session() -> Optional[str]:
                     """Create a fresh OpenCode session, returning its ID or None on failure."""
+                    # The OpenCode API expects just the model name without the provider prefix
+                    # e.g., "deepseek-v4-flash-free" not "opencode/deepseek-v4-flash-free"
+                    api_model_id = settings.default_model.split("/")[-1]
+                    logger.info(f"Creating session with model: {settings.default_model} (API: {api_model_id})")
                     create_resp = await client.post(
-                        f"{base_url}/session", json={"modelID": settings.default_model}
+                        f"{base_url}/session", json={"modelID": api_model_id}
                     )
+                    logger.info(f"Session creation response: {create_resp.status_code}")
                     if create_resp.status_code != 200:
+                        logger.warning(f"Failed to create session: {create_resp.text[:200]}")
                         return None
                     return create_resp.json().get("id")
 
@@ -325,13 +333,14 @@ class OpenCodeGenerator(CodeGenerator):
                         opencode_session_id = None
 
                 if not opencode_session_id:
+                    logger.info("Creating new OpenCode session...")
                     opencode_session_id = await _create_new_session()
                     if not opencode_session_id:
-                        yield reasoning_step(
-                            event_type="ERROR",
-                            message="Failed to create OpenCode session",
-                            details={},
-                        ).model_dump()
+                        logger.warning("Failed to create OpenCode session via API, trying CLI")
+                        session_manager.set_current_process(None)
+                        session_manager.release_process_lock()
+                        async for item in self._run_via_cli(prompt, session, config):
+                            yield item
                         return
                     session.opencode_session_id = opencode_session_id
                     logger.info(f"Created OpenCode session: {opencode_session_id}")
@@ -342,68 +351,91 @@ class OpenCodeGenerator(CodeGenerator):
                     details={},
                 ).model_dump()
 
+                # Send message to OpenCode
                 message_resp = await client.post(
                     f"{base_url}/session/{opencode_session_id}/message",
                     json={
                         "parts": [{"type": "text", "text": prompt}],
                     },
                 )
-
+                
                 if message_resp.status_code != 200:
-                    yield reasoning_step(
-                        event_type="ERROR",
-                        message="Failed to send message",
-                        details={
-                            "status": message_resp.status_code,
-                            "error": message_resp.text[:500],
-                        },
-                    ).model_dump()
+                    logger.warning(f"Failed to send message via API, trying CLI")
+                    session_manager.set_current_process(None)
+                    session_manager.release_process_lock()
+                    async for item in self._run_via_cli(prompt, session, config):
+                        yield item
                     return
 
-                message_data = message_resp.json()
+                # Handle potential empty or non-JSON response
+                try:
+                    message_data = message_resp.json()
+                except json.JSONDecodeError as e:
+                    response_content = message_resp.content.decode('utf-8') if message_resp.content else 'empty'
+                    logger.warning(f"API returned non-JSON response, trying CLI: {response_content[:200]}")
+                    session_manager.set_current_process(None)
+                    session_manager.release_process_lock()
+                    async for item in self._run_via_cli(prompt, session, config):
+                        yield item
+                    return
+
+                # Check for error responses
+                error_info = message_data.get("error") or message_data.get("info", {}).get("error")
+                if error_info:
+                    error_message = error_info.get("message") or \
+                                  error_info.get("data", {}).get("message") or \
+                                  str(error_info)
+                    logger.warning(f"API error, trying CLI: {error_message}")
+                    session_manager.set_current_process(None)
+                    session_manager.release_process_lock()
+                    async for item in self._run_via_cli(prompt, session, config):
+                        yield item
+                    return
+
+                # Extract parts from response
                 parts = message_data.get("parts", [])
+                
+                # If no parts found, check alternative response structures
+                if not parts:
+                    info_data = message_data.get("info", {})
+                    parts = info_data.get("parts", [])
+                
+                # If still no parts found, check more alternative structures
+                if not parts:
+                    if "text" in message_data:
+                        parts = [{"type": "text", "text": message_data["text"]}]
+                    elif "content" in message_data:
+                        parts = [{"type": "text", "text": str(message_data["content"])}]
+                    elif "response" in message_data:
+                        response = message_data["response"]
+                        if isinstance(response, str):
+                            parts = [{"type": "text", "text": response}]
+                        elif isinstance(response, dict) and "text" in response:
+                            parts = [{"type": "text", "text": response["text"]}]
+                    elif "text" in info_data:
+                        parts = [{"type": "text", "text": info_data["text"]}]
 
                 logger.info(f"Received response with {len(parts)} parts")
 
+                # If still no parts found, fallback to CLI
+                if not parts:
+                    logger.warning("API returned no content, trying CLI")
+                    session_manager.set_current_process(None)
+                    session_manager.release_process_lock()
+                    async for item in self._run_via_cli(prompt, session, config):
+                        yield item
+                    return
+
+                # Process response parts
                 for part in parts:
-                    part_type = part.get("type", "")
-
+                    part_type = part.get("type")
                     if part_type == "text":
-                        text = part.get("text", "")
-                        if text:
-                            yield message_chunk(text).model_dump()
-
-                    elif part_type == "tool_use":
-                        tool_name = part.get("name", "unknown")
-                        tool_input = part.get("input", {})
-
-                        msg = format_tool_message(tool_name, tool_input)
-                        details = {"tool": tool_name}
-                        if tool_input:
-                            input_str = json.dumps(tool_input)
-                            if len(input_str) > 300:
-                                input_str = input_str[:300] + "..."
-                            details["input"] = input_str
-
+                        yield message_chunk(part.get("text", "")).model_dump()
+                    elif part_type == "tool_result":
                         yield reasoning_step(
                             event_type="INFO",
-                            message=msg,
-                            details=details,
-                        ).model_dump()
-
-                    elif part_type == "tool_result":
-                        content = part.get("content", "")
-                        is_error = part.get("is_error", False)
-
-                        if isinstance(content, str) and len(content) > 500:
-                            display_content = content[:500] + "..."
-                        else:
-                            display_content = str(content)[:500]
-
-                        yield reasoning_step(
-                            event_type="ERROR" if is_error else "INFO",
-                            message="Tool failed" if is_error else "Tool completed",
-                            details={"output": display_content},
+                            message="Tool execution result",
+                            details={"tool_result": part},
                         ).model_dump()
 
                 yield reasoning_step(
@@ -413,23 +445,189 @@ class OpenCodeGenerator(CodeGenerator):
                 ).model_dump()
 
         except httpx.TimeoutException:
+            logger.warning("API timeout, trying CLI")
+            session_manager.set_current_process(None)
+            session_manager.release_process_lock()
+            async for item in self._run_via_cli(prompt, session, config):
+                yield item
+            return
+        except Exception as e:
+            logger.warning(f"API error: {e}, trying CLI")
+            session_manager.set_current_process(None)
+            session_manager.release_process_lock()
+            async for item in self._run_via_cli(prompt, session, config):
+                yield item
+            return
+        finally:
+            session_manager.set_current_process(None)
+            session_manager.release_process_lock()
+
+    async def _run_via_cli(
+        self, prompt: str, session: Session, config: CodeGeneratorConfig
+    ) -> AsyncGenerator[dict, None]:
+        """Run OpenCode via CLI as fallback."""
+        opencode_binary = find_opencode_binary()
+        if not opencode_binary:
             yield reasoning_step(
                 event_type="ERROR",
-                message="Request timed out",
-                details={"timeout_seconds": config.timeout},
+                message="OpenCode CLI not found",
+                details={
+                    "error": "Please install OpenCode from https://opencode.ai"
+                },
             ).model_dump()
-        except httpx.ConnectError as e:
+            return
+
+        # Determine working directory
+        cwd = config.working_directory
+        if not cwd and settings.resolved_target_repo:
+            cwd = str(settings.resolved_target_repo)
+        if not cwd:
+            cwd = os.getcwd()
+
+        model_id = settings.default_model or "opencode/deepseek-v4-flash-free"
+
+        try:
+            await session_manager.acquire_process_lock()
+
+            # Build command
+            cmd = [
+                opencode_binary,
+                "run",
+                prompt,
+                "--model",
+                model_id,
+                "--format",
+                "json",
+            ]
+
+            logger.info(f"Starting OpenCode CLI: cwd={cwd}, model={model_id}")
+            logger.info(f"CLI command: {' '.join(cmd)}")
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,  # Merge stderr into stdout
+                stdin=asyncio.subprocess.DEVNULL,  # Use DEVNULL to prevent blocking
+                cwd=cwd,
+                limit=10 * 1024 * 1024,
+            )
+
+            logger.info(f"CLI process started with PID: {process.pid}")
+            session_manager.set_current_process(process, session.session_id)
+
+            stdout_received = False
+
+            # Read stdout line by line (JSON format)
+            if process.stdout:
+                async for line in process.stdout:
+                    if not line:
+                        continue
+
+                    try:
+                        line_str = line.decode("utf-8").strip()
+                        if not line_str:
+                            continue
+                        
+                        # Parse JSON event
+                        event = json.loads(line_str)
+                        event_type = event.get("type", "")
+                        
+                        # Extract text content from text events
+                        if event_type == "text":
+                            text = event.get("part", {}).get("text", "")
+                            if text:
+                                stdout_received = True
+                                yield message_chunk(text).model_dump()
+                        elif event_type == "thought":
+                            thought = event.get("part", {}).get("thought", "")
+                            if thought:
+                                yield reasoning_step(
+                                    event_type="THOUGHT",
+                                    message=thought,
+                                ).model_dump()
+
+                    except json.JSONDecodeError:
+                        # Fallback for non-JSON output
+                        stdout_received = True
+                        yield message_chunk(line_str).model_dump()
+                    except Exception as e:
+                        logger.error(f"Error processing CLI output: {e}")
+
+            # Wait for process to complete with timeout
+            try:
+                await asyncio.wait_for(process.wait(), timeout=config.timeout)
+            except asyncio.TimeoutError:
+                process.terminate()
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    process.kill()
+                    await process.wait()
+
+                yield reasoning_step(
+                    event_type="ERROR",
+                    message="Execution timed out",
+                    details={"timeout_seconds": config.timeout},
+                ).model_dump()
+                yield message_chunk(
+                    f"\n\n**Execution timed out after {config.timeout} seconds.**\n\n"
+                    "This may indicate that OpenCode is not available in this environment.\n"
+                    "Please check that OpenCode is installed and the model is accessible."
+                ).model_dump()
+                session_manager.set_current_process(None)
+                session_manager.release_process_lock()
+                return
+
+            # If no output was received, show error
+            if not stdout_received and process.returncode == 0:
+                yield reasoning_step(
+                    event_type="ERROR",
+                    message="No response content",
+                    details={},
+                ).model_dump()
+                yield message_chunk(
+                    "\n\n**Error:** No response was received from OpenCode.\n\n"
+                    "This may be due to model availability issues or network problems.\n"
+                    "Please try again later."
+                ).model_dump()
+
+            yield reasoning_step(
+                event_type="INFO" if process.returncode == 0 else "ERROR",
+                message=f"OpenCode CLI {'completed' if process.returncode == 0 else 'failed'}",
+                details={"exit_code": process.returncode},
+            ).model_dump()
+
+        except FileNotFoundError:
             yield reasoning_step(
                 event_type="ERROR",
-                message="Failed to connect to OpenCode server",
-                details={"error": str(e)},
+                message="OpenCode CLI not found",
+                details={"error": "OpenCode CLI is not installed or not in PATH"},
+            ).model_dump()
+            yield message_chunk(
+                "\n\n**Error:** OpenCode CLI is not available.\n\n"
+                "Please install OpenCode from https://opencode.ai\n"
+                "or configure the OpenCode server endpoint."
+            ).model_dump()
+        except PermissionError:
+            yield reasoning_step(
+                event_type="ERROR",
+                message="Permission denied",
+                details={"error": "Cannot execute OpenCode CLI"},
+            ).model_dump()
+            yield message_chunk(
+                "\n\n**Error:** Permission denied when trying to run OpenCode.\n\n"
+                "Please check file permissions for the OpenCode binary."
             ).model_dump()
         except Exception as e:
-            logger.exception("Unexpected error in OpenCode runner")
+            logger.exception("Unexpected error in OpenCode CLI runner")
             yield reasoning_step(
                 event_type="ERROR",
                 message="Unexpected error",
                 details={"error": str(e)[:500]},
+            ).model_dump()
+            yield message_chunk(
+                f"\n\n**Error:** An unexpected error occurred: {str(e)[:200]}\n\n"
+                "Please try again or check the server logs."
             ).model_dump()
         finally:
             session_manager.set_current_process(None)

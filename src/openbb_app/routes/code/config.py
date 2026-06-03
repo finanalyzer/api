@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     opencode_binary: Optional[str] = None
     opencode_timeout: float = 600.0
     opencode_default_port: int = 4096
-    default_model: str = "opencode/deepseek-v4-flash:free"
+    default_model: str = "opencode/deepseek-v4-flash-free"
 
     # Logging
     log_level: str = "INFO"

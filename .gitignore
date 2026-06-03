@@ -1,13 +1,285 @@
-# Python-generated files
+# ==============================================
+# 通用忽略规则
+# ==============================================
+
+# 日志文件
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 编辑器目录和文件
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 操作系统文件
+*.orig
+*.rej
+*.bak
+*.backup
+*.old
+
+# ==============================================
+# Python忽略规则
+# ==============================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
 wheels/
-*.egg-info
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+.mypy_cache/
+.pytype/
+ruff_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+docs/build/
+docs/_static/
+docs/_templates/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
 .env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Editor directories and files
+.project
+.pydevproject
+
+# ==============================================
+# Node.js忽略规则
+# ==============================================
+
+node_modules/
+dist/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.next/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+
+# yarn
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+.yarn-integrity
+
+# pnpm
+node_modules/
+.pnpm/
+pnpm-lock.yaml
+
+# ==============================================
+# 项目特定忽略规则
+# ==============================================
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# 配置覆盖文件
+config/local.json
+config/local.js
+
+# 数据目录
+data/
+uploads/
+storage/
+backups/
+
+# 构建产物
+finanalyzer-app/dist/
+finanalyzer-app/build/
+
+# OpenBB特定
+openbb-charts/
+.openbb_sdk/
+.openbb_credentials/
+
+# AI代理相关
+chroma/
+vector_store/
+*.faiss
+*.index
+
+# 证书和密钥
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+certificates/
+
+# 监控数据
+prometheus_data/
+grafana_data/
+
+# ==============================================
+# 子模块忽略（由Git管理，不重复忽略）
+# ==============================================
+# 注意：Git子模块目录不应被忽略，由.gitmodules管理
+
+# ==============================================
+# 文档构建
+# ==============================================
+site/
+docs/site/
+*.pdf
+
+# ==============================================
+# Docker
+# ==============================================
+.dockerignore
+
+# ==============================================
+# Kubernetes
+# ==============================================
+*.yaml.tpl
+*.yml.tpl
+secrets/
+
+# ==============================================
+# Terraform
+# ==============================================
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# Python-generated files
+*.py[oc]
 uv.lock
 
-# Virtual environments
-.venv
+.trae
 .agent_sessions/
+.ruff_cache/

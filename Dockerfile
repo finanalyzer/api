@@ -1,4 +1,5 @@
-FROM python:3.13-slim-bookworm
+# Build stage - contains build dependencies
+FROM python:3.13-slim-bookworm AS builder
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -9,11 +10,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# Install build dependencies (removed git - not needed)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         curl \
-        git \
         gcc \
         g++ \
         pkg-config \
@@ -23,38 +24,60 @@ RUN apt-get update && \
         libsqlite3-dev \
         ca-certificates \
         gnupg \
-        supervisor \
         && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20 (LTS) from NodeSource to get npm
+# Install uv and Python packages as wheels
+RUN pip install --no-cache-dir "uv>=${UV_VERSION}" && \
+    pip install --no-cache-dir vibe-trading-ai
+
+# Copy and install application
+COPY pyproject.toml README.md ./
+COPY src/ src/
+RUN uv pip install --system -e . --no-cache
+
+# Runtime stage - minimal image with only runtime dependencies
+FROM python:3.13-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    VIBE_TRADING_HOME=/opt/vibe-trading \
+    VIBE_TRADING_AGENT_DIR=/usr/local/lib/python3.13/site-packages
+
+WORKDIR /app
+
+# Install ONLY runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        supervisor \
+        libpq5 \
+        libsqlite3-0 \
+        gnupg \
+        && rm -rf /var/lib/apt/lists/* && \
+    apt-get autoremove -y && \
+    apt-get clean
+
+# Install Node.js 20 (LTS) for opencode-ai runtime
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends nodejs && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get autoremove -y && \
+    apt-get clean
 
-# Install opencode globally via npm
-RUN npm install -g opencode-ai
+# Install opencode-ai globally via npm (needed at runtime)
+RUN npm install -g opencode-ai && \
+    npm cache clean --force
 
-# ---------------------------------------------------------------------------
-# Vibe-Trading installation
-# ---------------------------------------------------------------------------
-# Install Vibe-Trading from PyPI (vibe-trading-ai). The package ships three
-# entry points: `vibe-trading` (CLI/TUI), `vibe-trading serve` (FastAPI web),
-# and `vibe-trading-mcp` (Model Context Protocol server exposing 22 finance
-# research tools to any MCP-compatible client).
-# Configuration is provided at runtime by bind-mounting the host's `.env` to
-# `${VIBE_TRADING_AGENT_DIR}/.env` (see docker-compose.yml).
-RUN pip install --no-cache-dir vibe-trading-ai
+# Copy Python packages and application from builder
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /app /app
 
-# ---------------------------------------------------------------------------
-# OpenCode configuration for vibe-trading-mcp
-# ---------------------------------------------------------------------------
-# Register the vibe-trading-mcp stdio server as a local MCP inside opencode
-# so any opencode session automatically inherits the 22 finance research
-# tools (list_skills, load_skill, backtest, factor_analysis, web_search, ...).
-# The MCP server runs over stdio and is launched on demand by opencode.
+# Create OpenCode configuration
 RUN mkdir -p /etc/opencode && \
     printf '%s\n' \
         '{' \
@@ -72,27 +95,16 @@ RUN mkdir -p /etc/opencode && \
         '}' \
         > /etc/opencode/config.json
 
-RUN pip install "uv>=${UV_VERSION}" && \
-    uv venv
-
-COPY pyproject.toml .
-COPY README.md .
-COPY src/ src/
-
-RUN uv pip install --system -e .
-
-# Create appuser and setup permissions - do this AFTER all package installations
+# Create appuser and setup permissions
 RUN useradd --create-home --shell /bin/bash appuser && \
     mkdir -p /home/appuser/.config/opencode /home/appuser/.vibe-trading /opt/vibe-trading /var/log/supervisor /home/appuser/OpenBBUserData/cache/openbb_akshare && \
     cp /etc/opencode/config.json /home/appuser/.config/opencode/config.json && \
     chown -R appuser:appuser /app /home/appuser ${VIBE_TRADING_AGENT_DIR} /opt/vibe-trading /var/log/supervisor
 
-# Copy equity.db to OpenBBUserData cache directory
+# Copy remaining files
 COPY docs/equity.db /home/appuser/OpenBBUserData/cache/openbb_akshare/equity.db
-RUN chown appuser:appuser /home/appuser/OpenBBUserData/cache/openbb_akshare/equity.db
-
-# Copy supervisord configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN chown appuser:appuser /home/appuser/OpenBBUserData/cache/openbb_akshare/equity.db
 
 EXPOSE 8001 4096 8899
 

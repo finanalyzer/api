@@ -1,0 +1,899 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "fullName": "Trivy Vulnerability Scanner",
+          "informationUri": "https://github.com/aquasecurity/trivy",
+          "name": "Trivy",
+          "rules": [
+            {
+              "id": "CVE-2026-41989",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "Libgcrypt: Libgcrypt: Denial of Service and buffer overflow via crafted ECDH ciphertext"
+              },
+              "fullDescription": {
+                "text": "Libgcrypt before 1.12.2 sometimes allows a heap-based buffer overflow and denial of service via crafted ECDH ciphertext to gcry_pk_decrypt."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-41989",
+              "help": {
+                "text": "Vulnerability CVE-2026-41989\nSeverity: MEDIUM\nPackage: libgcrypt20\nFixed Version: 1.10.1-3+deb12u1\nLink: [CVE-2026-41989](https://avd.aquasec.com/nvd/cve-2026-41989)\nLibgcrypt before 1.12.2 sometimes allows a heap-based buffer overflow and denial of service via crafted ECDH ciphertext to gcry_pk_decrypt.",
+                "markdown": "**Vulnerability CVE-2026-41989**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgcrypt20|1.10.1-3+deb12u1|[CVE-2026-41989](https://avd.aquasec.com/nvd/cve-2026-41989)|\n\nLibgcrypt before 1.12.2 sometimes allows a heap-based buffer overflow and denial of service via crafted ECDH ciphertext to gcry_pk_decrypt."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-33845",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: GnuTLS: Denial of Service via DTLS zero-length fragment"
+              },
+              "fullDescription": {
+                "text": "A flaw in GnuTLS DTLS handshake parsing allows malformed fragments with zero length and non-zero offset, leading to an integer underflow during reassembly and resulting in an out-of-bounds read. This issue is remotely exploitable and may cause information disclosure or denial of service."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-33845",
+              "help": {
+                "text": "Vulnerability CVE-2026-33845\nSeverity: CRITICAL\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-33845](https://avd.aquasec.com/nvd/cve-2026-33845)\nA flaw in GnuTLS DTLS handshake parsing allows malformed fragments with zero length and non-zero offset, leading to an integer underflow during reassembly and resulting in an out-of-bounds read. This issue is remotely exploitable and may cause information disclosure or denial of service.",
+                "markdown": "**Vulnerability CVE-2026-33845**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|CRITICAL|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-33845](https://avd.aquasec.com/nvd/cve-2026-33845)|\n\nA flaw in GnuTLS DTLS handshake parsing allows malformed fragments with zero length and non-zero offset, leading to an integer underflow during reassembly and resulting in an out-of-bounds read. This issue is remotely exploitable and may cause information disclosure or denial of service."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "9.1",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "CRITICAL"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42010",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Authentication Bypass via NUL Character in Username"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. Servers configured with RSA-PSK (Rivest–Shamir–Adleman – Pre-Shared Key) wrongfully matched usernames containing a NUL character with truncated usernames. A remote attacker could exploit this by sending a specially crafted username, leading to an authentication bypass. This vulnerability allows an attacker to gain unauthorized access by circumventing the authentication process."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42010",
+              "help": {
+                "text": "Vulnerability CVE-2026-42010\nSeverity: CRITICAL\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42010](https://avd.aquasec.com/nvd/cve-2026-42010)\nA flaw was found in gnutls. Servers configured with RSA-PSK (Rivest–Shamir–Adleman – Pre-Shared Key) wrongfully matched usernames containing a NUL character with truncated usernames. A remote attacker could exploit this by sending a specially crafted username, leading to an authentication bypass. This vulnerability allows an attacker to gain unauthorized access by circumventing the authentication process.",
+                "markdown": "**Vulnerability CVE-2026-42010**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|CRITICAL|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42010](https://avd.aquasec.com/nvd/cve-2026-42010)|\n\nA flaw was found in gnutls. Servers configured with RSA-PSK (Rivest–Shamir–Adleman – Pre-Shared Key) wrongfully matched usernames containing a NUL character with truncated usernames. A remote attacker could exploit this by sending a specially crafted username, leading to an authentication bypass. This vulnerability allows an attacker to gain unauthorized access by circumventing the authentication process."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "9.8",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "CRITICAL"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-33846",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: GnuTLS: Denial of Service via heap buffer overflow in DTLS handshake fragment reassembly"
+              },
+              "fullDescription": {
+                "text": "A heap buffer overflow vulnerability exists in the DTLS handshake fragment reassembly logic of GnuTLS. The issue arises in merge_handshake_packet() where incoming handshake fragments are matched and merged based solely on handshake type, without validating that the message_length field remains consistent across all fragments of the same logical message. An attacker can exploit this by sending crafted DTLS fragments with conflicting message_length values, causing the implementation to allocate a buffer based on a smaller initial fragment and subsequently write beyond its bounds using larger, inconsistent fragments. Because the merge operation does not enforce proper bounds checking against the allocated buffer size, this results in an out-of-bounds write on the heap. The vulnerability is remotely exploitable without authentication via the DTLS handshake path and can lead to application crashes or potential memory corruption."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-33846",
+              "help": {
+                "text": "Vulnerability CVE-2026-33846\nSeverity: HIGH\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-33846](https://avd.aquasec.com/nvd/cve-2026-33846)\nA heap buffer overflow vulnerability exists in the DTLS handshake fragment reassembly logic of GnuTLS. The issue arises in merge_handshake_packet() where incoming handshake fragments are matched and merged based solely on handshake type, without validating that the message_length field remains consistent across all fragments of the same logical message. An attacker can exploit this by sending crafted DTLS fragments with conflicting message_length values, causing the implementation to allocate a buffer based on a smaller initial fragment and subsequently write beyond its bounds using larger, inconsistent fragments. Because the merge operation does not enforce proper bounds checking against the allocated buffer size, this results in an out-of-bounds write on the heap. The vulnerability is remotely exploitable without authentication via the DTLS handshake path and can lead to application crashes or potential memory corruption.",
+                "markdown": "**Vulnerability CVE-2026-33846**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|HIGH|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-33846](https://avd.aquasec.com/nvd/cve-2026-33846)|\n\nA heap buffer overflow vulnerability exists in the DTLS handshake fragment reassembly logic of GnuTLS. The issue arises in merge_handshake_packet() where incoming handshake fragments are matched and merged based solely on handshake type, without validating that the message_length field remains consistent across all fragments of the same logical message. An attacker can exploit this by sending crafted DTLS fragments with conflicting message_length values, causing the implementation to allocate a buffer based on a smaller initial fragment and subsequently write beyond its bounds using larger, inconsistent fragments. Because the merge operation does not enforce proper bounds checking against the allocated buffer size, this results in an out-of-bounds write on the heap. The vulnerability is remotely exploitable without authentication via the DTLS handshake path and can lead to application crashes or potential memory corruption."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "8.0",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "HIGH"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-3833",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: GnuTLS: Policy bypass due to case-sensitive nameConstraints comparison"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. This vulnerability occurs because gnutls performs case-sensitive comparisons of `nameConstraints` labels, specifically for `dNSName` (DNS) or `rfc822Name` (email) constraints within `excludedSubtrees` or `permittedSubtrees`. A remote attacker can exploit this by crafting a leaf certificate with casing differences in the Subject Alternative Name (SAN), leading to a policy bypass where a certificate that should be rejected is instead accepted. This could result in unauthorized access or information disclosure."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-3833",
+              "help": {
+                "text": "Vulnerability CVE-2026-3833\nSeverity: HIGH\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-3833](https://avd.aquasec.com/nvd/cve-2026-3833)\nA flaw was found in gnutls. This vulnerability occurs because gnutls performs case-sensitive comparisons of `nameConstraints` labels, specifically for `dNSName` (DNS) or `rfc822Name` (email) constraints within `excludedSubtrees` or `permittedSubtrees`. A remote attacker can exploit this by crafting a leaf certificate with casing differences in the Subject Alternative Name (SAN), leading to a policy bypass where a certificate that should be rejected is instead accepted. This could result in unauthorized access or information disclosure.",
+                "markdown": "**Vulnerability CVE-2026-3833**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|HIGH|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-3833](https://avd.aquasec.com/nvd/cve-2026-3833)|\n\nA flaw was found in gnutls. This vulnerability occurs because gnutls performs case-sensitive comparisons of `nameConstraints` labels, specifically for `dNSName` (DNS) or `rfc822Name` (email) constraints within `excludedSubtrees` or `permittedSubtrees`. A remote attacker can exploit this by crafting a leaf certificate with casing differences in the Subject Alternative Name (SAN), leading to a policy bypass where a certificate that should be rejected is instead accepted. This could result in unauthorized access or information disclosure."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "7.4",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "HIGH"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42009",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Denial of Service via DTLS packet reordering vulnerability"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. A remote attacker could exploit an issue in the Datagram Transport Layer Security (DTLS) packet reordering logic. The comparator function, responsible for ordering DTLS packets by sequence numbers, did not correctly handle packets with duplicate sequence numbers. This could lead to unstable packet ordering or undefined behavior, resulting in a denial of service."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42009",
+              "help": {
+                "text": "Vulnerability CVE-2026-42009\nSeverity: HIGH\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42009](https://avd.aquasec.com/nvd/cve-2026-42009)\nA flaw was found in gnutls. A remote attacker could exploit an issue in the Datagram Transport Layer Security (DTLS) packet reordering logic. The comparator function, responsible for ordering DTLS packets by sequence numbers, did not correctly handle packets with duplicate sequence numbers. This could lead to unstable packet ordering or undefined behavior, resulting in a denial of service.",
+                "markdown": "**Vulnerability CVE-2026-42009**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|HIGH|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42009](https://avd.aquasec.com/nvd/cve-2026-42009)|\n\nA flaw was found in gnutls. A remote attacker could exploit an issue in the Datagram Transport Layer Security (DTLS) packet reordering logic. The comparator function, responsible for ordering DTLS packets by sequence numbers, did not correctly handle packets with duplicate sequence numbers. This could lead to unstable packet ordering or undefined behavior, resulting in a denial of service."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "8.0",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "HIGH"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42011",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Security bypass due to incorrect name constraint handling"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. This vulnerability occurs because permitted name constraints were incorrectly ignored when previous Certificate Authorities (CAs) only had excluded name constraints. A remote attacker could exploit this to bypass critical name constraint checks during certificate validation. This bypass could lead to the acceptance of invalid certificates, potentially enabling spoofing or man-in-the-middle attacks against affected systems."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42011",
+              "help": {
+                "text": "Vulnerability CVE-2026-42011\nSeverity: MEDIUM\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42011](https://avd.aquasec.com/nvd/cve-2026-42011)\nA flaw was found in gnutls. This vulnerability occurs because permitted name constraints were incorrectly ignored when previous Certificate Authorities (CAs) only had excluded name constraints. A remote attacker could exploit this to bypass critical name constraint checks during certificate validation. This bypass could lead to the acceptance of invalid certificates, potentially enabling spoofing or man-in-the-middle attacks against affected systems.",
+                "markdown": "**Vulnerability CVE-2026-42011**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42011](https://avd.aquasec.com/nvd/cve-2026-42011)|\n\nA flaw was found in gnutls. This vulnerability occurs because permitted name constraints were incorrectly ignored when previous Certificate Authorities (CAs) only had excluded name constraints. A remote attacker could exploit this to bypass critical name constraint checks during certificate validation. This bypass could lead to the acceptance of invalid certificates, potentially enabling spoofing or man-in-the-middle attacks against affected systems."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42012",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Certificate validation bypass due to improper handling of URI and SRV SANs"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. A remote attacker could exploit this vulnerability by presenting a specially crafted certificate that contains Uniform Resource Identifier (URI) or Service (SRV) Subject Alternative Names (SANs). This could cause the certificate validation process to incorrectly fall back to checking DNS hostnames against the Common Name (CN), potentially allowing the attacker to spoof legitimate services or intercept sensitive information."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42012",
+              "help": {
+                "text": "Vulnerability CVE-2026-42012\nSeverity: MEDIUM\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42012](https://avd.aquasec.com/nvd/cve-2026-42012)\nA flaw was found in gnutls. A remote attacker could exploit this vulnerability by presenting a specially crafted certificate that contains Uniform Resource Identifier (URI) or Service (SRV) Subject Alternative Names (SANs). This could cause the certificate validation process to incorrectly fall back to checking DNS hostnames against the Common Name (CN), potentially allowing the attacker to spoof legitimate services or intercept sensitive information.",
+                "markdown": "**Vulnerability CVE-2026-42012**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42012](https://avd.aquasec.com/nvd/cve-2026-42012)|\n\nA flaw was found in gnutls. A remote attacker could exploit this vulnerability by presenting a specially crafted certificate that contains Uniform Resource Identifier (URI) or Service (SRV) Subject Alternative Names (SANs). This could cause the certificate validation process to incorrectly fall back to checking DNS hostnames against the Common Name (CN), potentially allowing the attacker to spoof legitimate services or intercept sensitive information."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42013",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Certificate validation bypass due to oversized Subject Alternative Name"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. When validating certificates, an oversized Subject Alternative Name (SAN) could cause the validation process to incorrectly fall back to checking the Common Name (CN) field. This could allow a remote attacker to bypass proper certificate validation, potentially leading to spoofing or man-in-the-middle attacks."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42013",
+              "help": {
+                "text": "Vulnerability CVE-2026-42013\nSeverity: MEDIUM\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42013](https://avd.aquasec.com/nvd/cve-2026-42013)\nA flaw was found in gnutls. When validating certificates, an oversized Subject Alternative Name (SAN) could cause the validation process to incorrectly fall back to checking the Common Name (CN) field. This could allow a remote attacker to bypass proper certificate validation, potentially leading to spoofing or man-in-the-middle attacks.",
+                "markdown": "**Vulnerability CVE-2026-42013**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42013](https://avd.aquasec.com/nvd/cve-2026-42013)|\n\nA flaw was found in gnutls. When validating certificates, an oversized Subject Alternative Name (SAN) could cause the validation process to incorrectly fall back to checking the Common Name (CN) field. This could allow a remote attacker to bypass proper certificate validation, potentially leading to spoofing or man-in-the-middle attacks."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42014",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: Fix use-after-free in gnutls_pkcs11_token_set_pin"
+              },
+              "fullDescription": {
+                "text": "No description is available for this CVE."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42014",
+              "help": {
+                "text": "Vulnerability CVE-2026-42014\nSeverity: MEDIUM\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42014](https://avd.aquasec.com/nvd/cve-2026-42014)\nNo description is available for this CVE.",
+                "markdown": "**Vulnerability CVE-2026-42014**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42014](https://avd.aquasec.com/nvd/cve-2026-42014)|\n\nNo description is available for this CVE."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-42015",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Memory corruption due to off-by-one error in PKCS#12 bag handling"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in gnutls. An off-by-one error exists in the PKCS#12 bag element bounds check. This vulnerability allows an remote attacker to write past the internal array of a PKCS#12 bag when appending to a bag that already contains 32 elements. This memory corruption could lead to a denial of service (DoS) or potentially other unspecified impacts."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-42015",
+              "help": {
+                "text": "Vulnerability CVE-2026-42015\nSeverity: MEDIUM\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42015](https://avd.aquasec.com/nvd/cve-2026-42015)\nA flaw was found in gnutls. An off-by-one error exists in the PKCS#12 bag element bounds check. This vulnerability allows an remote attacker to write past the internal array of a PKCS#12 bag when appending to a bag that already contains 32 elements. This memory corruption could lead to a denial of service (DoS) or potentially other unspecified impacts.",
+                "markdown": "**Vulnerability CVE-2026-42015**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-42015](https://avd.aquasec.com/nvd/cve-2026-42015)|\n\nA flaw was found in gnutls. An off-by-one error exists in the PKCS#12 bag element bounds check. This vulnerability allows an remote attacker to write past the internal array of a PKCS#12 bag when appending to a bag that already contains 32 elements. This memory corruption could lead to a denial of service (DoS) or potentially other unspecified impacts."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-5260",
+              "name": "OsPackageVulnerability",
+              "shortDescription": {
+                "text": "gnutls: gnutls: Information disclosure via heap overread in RSA key exchange"
+              },
+              "fullDescription": {
+                "text": "A flaw was found in libgnutls. A remote attacker, by sending an extremely short premaster secret during an RSA key exchange to a server using an RSA key backed by a PKCS#11 token, could trigger a short heap overread. This memory corruption vulnerability could lead to information disclosure."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-5260",
+              "help": {
+                "text": "Vulnerability CVE-2026-5260\nSeverity: MEDIUM\nPackage: libgnutls30\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-5260](https://avd.aquasec.com/nvd/cve-2026-5260)\nA flaw was found in libgnutls. A remote attacker, by sending an extremely short premaster secret during an RSA key exchange to a server using an RSA key backed by a PKCS#11 token, could trigger a short heap overread. This memory corruption vulnerability could lead to information disclosure.",
+                "markdown": "**Vulnerability CVE-2026-5260**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|libgnutls30|3.7.9-2+deb12u7|[CVE-2026-5260](https://avd.aquasec.com/nvd/cve-2026-5260)|\n\nA flaw was found in libgnutls. A remote attacker, by sending an extremely short premaster secret during an RSA key exchange to a server using an RSA key backed by a PKCS#11 token, could trigger a short heap overread. This memory corruption vulnerability could lead to information disclosure."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-3219",
+              "name": "LanguageSpecificPackageVulnerability",
+              "shortDescription": {
+                "text": "pip: pip: Incorrect file installation due to improper archive handling"
+              },
+              "fullDescription": {
+                "text": "pip handles concatenated tar and ZIP files as ZIP files regardless of filename or whether a file is both a tar and ZIP file. This behavior could result in confusing installation behavior, such as installing \u0026#34;incorrect\u0026#34; files according to the filename of the archive. New behavior only proceeds with installation if the file identifies uniquely as a ZIP or tar archive, not as both."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-3219",
+              "help": {
+                "text": "Vulnerability CVE-2026-3219\nSeverity: MEDIUM\nPackage: pip\nFixed Version: 26.1\nLink: [CVE-2026-3219](https://avd.aquasec.com/nvd/cve-2026-3219)\npip handles concatenated tar and ZIP files as ZIP files regardless of filename or whether a file is both a tar and ZIP file. This behavior could result in confusing installation behavior, such as installing \"incorrect\" files according to the filename of the archive. New behavior only proceeds with installation if the file identifies uniquely as a ZIP or tar archive, not as both.",
+                "markdown": "**Vulnerability CVE-2026-3219**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|pip|26.1|[CVE-2026-3219](https://avd.aquasec.com/nvd/cve-2026-3219)|\n\npip handles concatenated tar and ZIP files as ZIP files regardless of filename or whether a file is both a tar and ZIP file. This behavior could result in confusing installation behavior, such as installing \"incorrect\" files according to the filename of the archive. New behavior only proceeds with installation if the file identifies uniquely as a ZIP or tar archive, not as both."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "0.0",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-6357",
+              "name": "LanguageSpecificPackageVulnerability",
+              "shortDescription": {
+                "text": "pip: pip: Arbitrary code execution or information disclosure via malicious wheel package installation"
+              },
+              "fullDescription": {
+                "text": "pip prior to version 26.1 would run self-update check functionality after installing wheel files which required importing well-known Python modules names. These module imports were intentionally deferred to increase startup time of the pip CLI. The patch changes self-update functionality to run before wheels are installed to prevent newly-installed modules from being imported shortly after the installation of a wheel package. Users should still review package contents prior to installation."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-6357",
+              "help": {
+                "text": "Vulnerability CVE-2026-6357\nSeverity: MEDIUM\nPackage: pip\nFixed Version: 26.1\nLink: [CVE-2026-6357](https://avd.aquasec.com/nvd/cve-2026-6357)\npip prior to version 26.1 would run self-update check functionality after installing wheel files which required importing well-known Python modules names. These module imports were intentionally deferred to increase startup time of the pip CLI. The patch changes self-update functionality to run before wheels are installed to prevent newly-installed modules from being imported shortly after the installation of a wheel package. Users should still review package contents prior to installation.",
+                "markdown": "**Vulnerability CVE-2026-6357**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|pip|26.1|[CVE-2026-6357](https://avd.aquasec.com/nvd/cve-2026-6357)|\n\npip prior to version 26.1 would run self-update check functionality after installing wheel files which required importing well-known Python modules names. These module imports were intentionally deferred to increase startup time of the pip CLI. The patch changes self-update functionality to run before wheels are installed to prevent newly-installed modules from being imported shortly after the installation of a wheel package. Users should still review package contents prior to installation."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "0.0",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "CVE-2026-48710",
+              "name": "LanguageSpecificPackageVulnerability",
+              "shortDescription": {
+                "text": "starlette: Starlette: Security restriction bypass via malformed HTTP Host header"
+              },
+              "fullDescription": {
+                "text": "Starlette is a lightweight ASGI framework/toolkit. Prior to version 1.0.1, the HTTP `Host` request header was not validated before being used to reconstruct `request.url`. Because the routing algorithm relies on the raw HTTP path while `request.url` is rebuilt from the `Host` header, a malformed header could make `request.url.path` differ from the path that was actually requested. Middleware and endpoints that apply security restrictions based on `request.url` (rather than the raw `scope` path) could therefore be bypassed. Users should upgrade to a version greater than or equal to version 1.0.1, which validates the `Host` header against the grammar of RFC 9112 §3.2 / RFC 3986 §3.2.2 when constructing `request.url` and falls back to `scope[\u0026#34;server\u0026#34;]` for malformed values."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://avd.aquasec.com/nvd/cve-2026-48710",
+              "help": {
+                "text": "Vulnerability CVE-2026-48710\nSeverity: MEDIUM\nPackage: starlette\nFixed Version: 1.0.1\nLink: [CVE-2026-48710](https://avd.aquasec.com/nvd/cve-2026-48710)\nStarlette is a lightweight ASGI framework/toolkit. Prior to version 1.0.1, the HTTP `Host` request header was not validated before being used to reconstruct `request.url`. Because the routing algorithm relies on the raw HTTP path while `request.url` is rebuilt from the `Host` header, a malformed header could make `request.url.path` differ from the path that was actually requested. Middleware and endpoints that apply security restrictions based on `request.url` (rather than the raw `scope` path) could therefore be bypassed. Users should upgrade to a version greater than or equal to version 1.0.1, which validates the `Host` header against the grammar of RFC 9112 §3.2 / RFC 3986 §3.2.2 when constructing `request.url` and falls back to `scope[\"server\"]` for malformed values.",
+                "markdown": "**Vulnerability CVE-2026-48710**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|starlette|1.0.1|[CVE-2026-48710](https://avd.aquasec.com/nvd/cve-2026-48710)|\n\nStarlette is a lightweight ASGI framework/toolkit. Prior to version 1.0.1, the HTTP `Host` request header was not validated before being used to reconstruct `request.url`. Because the routing algorithm relies on the raw HTTP path while `request.url` is rebuilt from the `Host` header, a malformed header could make `request.url.path` differ from the path that was actually requested. Middleware and endpoints that apply security restrictions based on `request.url` (rather than the raw `scope` path) could therefore be bypassed. Users should upgrade to a version greater than or equal to version 1.0.1, which validates the `Host` header against the grammar of RFC 9112 §3.2 / RFC 3986 §3.2.2 when constructing `request.url` and falls back to `scope[\"server\"]` for malformed values."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "6.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            },
+            {
+              "id": "GHSA-4gg8-gxpx-9rph",
+              "name": "LanguageSpecificPackageVulnerability",
+              "shortDescription": {
+                "text": "uv is vulnerable to arbitrary file write through entry point names"
+              },
+              "fullDescription": {
+                "text": "### Impact\n\nIn versions of uv prior to 0.11.15, when installing a distribution containing an entry point specification (under `console_scripts` or `gui_scripts`), uv would place the generated entry point according to the given name even if doing so resulted in a path outside of the environment\u0026#39;s scripts directory.\n\nA malicious wheel could use this to place an executable outside of the intended environment, including in a directory already present on the user\u0026#39;s `PATH`. This could shadow or overwrite an existing executable and potentially result in unexpected code execution under the wheel\u0026#39;s control, even if the wheel\u0026#39;s installation environment was not explicitly added to `PATH` by the user.\n\nIn order to exploit this vulnerability, the attacker must induce their target into installing a malicious wheel.\n\n### Patches\n\nuv 0.11.15 and newer address this vulnerability. Users are encouraged to upgrade to 0.11.15.\n\n### Workarounds\n\nThere is no workaround other than upgrading to uv 0.11.15."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "helpUri": "https://github.com/advisories/GHSA-4gg8-gxpx-9rph",
+              "help": {
+                "text": "Vulnerability GHSA-4gg8-gxpx-9rph\nSeverity: MEDIUM\nPackage: uv\nFixed Version: 0.11.15\nLink: [GHSA-4gg8-gxpx-9rph](https://github.com/advisories/GHSA-4gg8-gxpx-9rph)\n### Impact\n\nIn versions of uv prior to 0.11.15, when installing a distribution containing an entry point specification (under `console_scripts` or `gui_scripts`), uv would place the generated entry point according to the given name even if doing so resulted in a path outside of the environment's scripts directory.\n\nA malicious wheel could use this to place an executable outside of the intended environment, including in a directory already present on the user's `PATH`. This could shadow or overwrite an existing executable and potentially result in unexpected code execution under the wheel's control, even if the wheel's installation environment was not explicitly added to `PATH` by the user.\n\nIn order to exploit this vulnerability, the attacker must induce their target into installing a malicious wheel.\n\n### Patches\n\nuv 0.11.15 and newer address this vulnerability. Users are encouraged to upgrade to 0.11.15.\n\n### Workarounds\n\nThere is no workaround other than upgrading to uv 0.11.15.",
+                "markdown": "**Vulnerability GHSA-4gg8-gxpx-9rph**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|MEDIUM|uv|0.11.15|[GHSA-4gg8-gxpx-9rph](https://github.com/advisories/GHSA-4gg8-gxpx-9rph)|\n\n### Impact\n\nIn versions of uv prior to 0.11.15, when installing a distribution containing an entry point specification (under `console_scripts` or `gui_scripts`), uv would place the generated entry point according to the given name even if doing so resulted in a path outside of the environment's scripts directory.\n\nA malicious wheel could use this to place an executable outside of the intended environment, including in a directory already present on the user's `PATH`. This could shadow or overwrite an existing executable and potentially result in unexpected code execution under the wheel's control, even if the wheel's installation environment was not explicitly added to `PATH` by the user.\n\nIn order to exploit this vulnerability, the attacker must induce their target into installing a malicious wheel.\n\n### Patches\n\nuv 0.11.15 and newer address this vulnerability. Users are encouraged to upgrade to 0.11.15.\n\n### Workarounds\n\nThere is no workaround other than upgrading to uv 0.11.15."
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "5.5",
+                "tags": [
+                  "vulnerability",
+                  "security",
+                  "MEDIUM"
+                ]
+              }
+            }
+          ],
+          "version": "0.47.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2026-41989",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgcrypt20\nInstalled Version: 1.10.1-3\nVulnerability CVE-2026-41989\nSeverity: MEDIUM\nFixed Version: 1.10.1-3+deb12u1\nLink: [CVE-2026-41989](https://avd.aquasec.com/nvd/cve-2026-41989)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgcrypt20@1.10.1-3"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-33845",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-33845\nSeverity: CRITICAL\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-33845](https://avd.aquasec.com/nvd/cve-2026-33845)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42010",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42010\nSeverity: CRITICAL\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42010](https://avd.aquasec.com/nvd/cve-2026-42010)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-33846",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-33846\nSeverity: HIGH\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-33846](https://avd.aquasec.com/nvd/cve-2026-33846)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-3833",
+          "ruleIndex": 4,
+          "level": "error",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-3833\nSeverity: HIGH\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-3833](https://avd.aquasec.com/nvd/cve-2026-3833)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42009",
+          "ruleIndex": 5,
+          "level": "error",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42009\nSeverity: HIGH\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42009](https://avd.aquasec.com/nvd/cve-2026-42009)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42011",
+          "ruleIndex": 6,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42011\nSeverity: MEDIUM\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42011](https://avd.aquasec.com/nvd/cve-2026-42011)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42012",
+          "ruleIndex": 7,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42012\nSeverity: MEDIUM\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42012](https://avd.aquasec.com/nvd/cve-2026-42012)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42013",
+          "ruleIndex": 8,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42013\nSeverity: MEDIUM\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42013](https://avd.aquasec.com/nvd/cve-2026-42013)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42014",
+          "ruleIndex": 9,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42014\nSeverity: MEDIUM\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42014](https://avd.aquasec.com/nvd/cve-2026-42014)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-42015",
+          "ruleIndex": 10,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-42015\nSeverity: MEDIUM\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-42015](https://avd.aquasec.com/nvd/cve-2026-42015)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-5260",
+          "ruleIndex": 11,
+          "level": "warning",
+          "message": {
+            "text": "Package: libgnutls30\nInstalled Version: 3.7.9-2+deb12u6\nVulnerability CVE-2026-5260\nSeverity: MEDIUM\nFixed Version: 3.7.9-2+deb12u7\nLink: [CVE-2026-5260](https://avd.aquasec.com/nvd/cve-2026-5260)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "shugaoye/openbb-app",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "shugaoye/openbb-app: libgnutls30@3.7.9-2+deb12u6"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-3219",
+          "ruleIndex": 12,
+          "level": "warning",
+          "message": {
+            "text": "Package: pip\nInstalled Version: 26.0.1\nVulnerability CVE-2026-3219\nSeverity: MEDIUM\nFixed Version: 26.1\nLink: [CVE-2026-3219](https://avd.aquasec.com/nvd/cve-2026-3219)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "usr/local/lib/python3.13/site-packages/pip-26.0.1.dist-info/METADATA",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "usr/local/lib/python3.13/site-packages/pip-26.0.1.dist-info/METADATA: pip@26.0.1"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-6357",
+          "ruleIndex": 13,
+          "level": "warning",
+          "message": {
+            "text": "Package: pip\nInstalled Version: 26.0.1\nVulnerability CVE-2026-6357\nSeverity: MEDIUM\nFixed Version: 26.1\nLink: [CVE-2026-6357](https://avd.aquasec.com/nvd/cve-2026-6357)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "usr/local/lib/python3.13/site-packages/pip-26.0.1.dist-info/METADATA",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "usr/local/lib/python3.13/site-packages/pip-26.0.1.dist-info/METADATA: pip@26.0.1"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2026-48710",
+          "ruleIndex": 14,
+          "level": "warning",
+          "message": {
+            "text": "Package: starlette\nInstalled Version: 0.52.1\nVulnerability CVE-2026-48710\nSeverity: MEDIUM\nFixed Version: 1.0.1\nLink: [CVE-2026-48710](https://avd.aquasec.com/nvd/cve-2026-48710)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "usr/local/lib/python3.13/site-packages/starlette-0.52.1.dist-info/METADATA",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "usr/local/lib/python3.13/site-packages/starlette-0.52.1.dist-info/METADATA: starlette@0.52.1"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "GHSA-4gg8-gxpx-9rph",
+          "ruleIndex": 15,
+          "level": "warning",
+          "message": {
+            "text": "Package: uv\nInstalled Version: 0.9.7\nVulnerability GHSA-4gg8-gxpx-9rph\nSeverity: MEDIUM\nFixed Version: 0.11.15\nLink: [GHSA-4gg8-gxpx-9rph](https://github.com/advisories/GHSA-4gg8-gxpx-9rph)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "usr/local/lib/python3.13/site-packages/uv-0.9.7.dist-info/METADATA",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "usr/local/lib/python3.13/site-packages/uv-0.9.7.dist-info/METADATA: uv@0.9.7"
+              }
+            }
+          ]
+        }
+      ],
+      "columnKind": "utf16CodeUnits",
+      "originalUriBaseIds": {
+        "ROOTPATH": {
+          "uri": "file:///"
+        }
+      },
+      "properties": {
+        "imageName": "ghcr.io/shugaoye/openbb-app:master",
+        "repoDigests": [
+          "ghcr.io/shugaoye/openbb-app@sha256:24da0ced7f81f43804bfcde6d4a179e749767c48bcb04677737ed8d00c3d84bf"
+        ],
+        "repoTags": [
+          "ghcr.io/shugaoye/openbb-app:master"
+        ]
+      }
+    }
+  ]
+}

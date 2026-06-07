@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  openbb-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+      - "4096:4096"
+      - "8899:8899"
+    volumes:
+      - .:/app
+      - /app/.venv
+      # Bind-mount the host's `.env` into the vibe-trading package's
+      # `src/agent/.env` slot so vibe-trading (CLI / serve / MCP) auto-loads
+      # the same configuration the rest of openbb-app uses. Mounting a
+      # single file (instead of env_file) preserves comments, quoting,
+      # and the exact same on-disk file vibe-trading would otherwise
+      # expect. Skip with `- ./:/app/.env-missing` style comment if you
+      # want to fall back to environment variables only.
+      - ./.env:/home/appuser/.vibe-trading/.env:ro
+      # Bind-mount Vibe-Trading source code for development
+      - ../Vibe-Trading:/opt/vibe-trading
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - TUSHARE_API_KEY=${TUSHARE_API_KEY:-}
+      - AGENT_HOST_URL=${AGENT_HOST_URL:-}
+      - APP_API_KEY=${APP_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/api/openapi.json && curl -f http://localhost:4096/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  openbb-app-ghcr:
+    image: ghcr.io/shugaoye/openbb-app:master
+    ports:
+      - "8002:8001"
+      - "4097:4096"
+      - "8900:8899"
+    volumes:
+      - .:/app
+      - /app/.venv
+      - ./.env:/home/appuser/.vibe-trading/.env:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - TUSHARE_API_KEY=${TUSHARE_API_KEY:-}
+      - AGENT_HOST_URL=${AGENT_HOST_URL:-}
+      - APP_API_KEY=${APP_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/api/openapi.json && curl -f http://localhost:4096/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped

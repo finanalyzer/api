@@ -709,7 +709,7 @@ def delete_stock_post(request: StockDeleteRequest):
                         "field": "date",
                         "headerName": "Date",
                         "headerTooltip": "Transaction date",
-                        "cellDataType": "text",
+                        "cellDataType": "dateString",
                     },
                     {
                         "field": "symbol",

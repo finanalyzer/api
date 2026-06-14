@@ -1,4 +1,5 @@
 import logging
+import threading
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -13,6 +14,18 @@ logger = logging.getLogger(__name__)
 
 # 创建路由器
 dashboard_router = APIRouter()
+
+# Per-dashboard locks to prevent read-modify-write race conditions
+_dashboard_locks: dict[str, threading.Lock] = {}
+_lock_registry_lock = threading.Lock()
+
+
+def _get_dashboard_lock(dashboard_id: str) -> threading.Lock:
+    """Get or create a lock for a specific dashboard."""
+    with _lock_registry_lock:
+        if dashboard_id not in _dashboard_locks:
+            _dashboard_locks[dashboard_id] = threading.Lock()
+        return _dashboard_locks[dashboard_id]
 
 
 # 初始化数据库管理器
@@ -56,11 +69,18 @@ class WidgetResponse(WidgetBase):
         from_attributes = True
 
 
+class TabBase(BaseModel):
+    id: str = Field(..., description="Tab ID")
+    name: str = Field(..., description="Tab name")
+    icon: Optional[str] = Field(None, description="Tab icon")
+
+
 class DashboardBase(BaseModel):
     id: str = Field(..., description="Dashboard ID")
     name: str = Field(..., description="Dashboard name")
     description: Optional[str] = Field(None, description="Dashboard description")
     widgets: List[WidgetBase] = Field(default_factory=list, description="Dashboard widgets")
+    tabs: List[TabBase] = Field(default_factory=list, description="Dashboard tabs")
     created_at: Optional[str] = Field(None, description="Creation timestamp")
     updated_at: Optional[str] = Field(None, description="Update timestamp")
 
@@ -73,6 +93,7 @@ class DashboardUpdate(BaseModel):
     name: Optional[str] = Field(None, description="Dashboard name")
     description: Optional[str] = Field(None, description="Dashboard description")
     widgets: Optional[List[WidgetBase]] = Field(None, description="Dashboard widgets")
+    tabs: Optional[List[TabBase]] = Field(None, description="Dashboard tabs")
 
 
 class DashboardResponse(DashboardBase):
@@ -251,14 +272,16 @@ def add_dashboard_widget(
 ):
     """向仪表盘添加组件"""
     try:
-        db_manager = get_db_manager()
-        dashboard = db_manager.get_dashboard(dashboard_id)
-        if not dashboard:
-            raise HTTPException(status_code=404, detail="Dashboard not found")
+        lock = _get_dashboard_lock(dashboard_id)
+        with lock:
+            db_manager = get_db_manager()
+            dashboard = db_manager.get_dashboard(dashboard_id)
+            if not dashboard:
+                raise HTTPException(status_code=404, detail="Dashboard not found")
 
-        widgets = dashboard.get("widgets", [])
-        widgets.append(widget.model_dump())
-        db_manager.update_dashboard(dashboard_id, {"widgets": widgets})
+            widgets = dashboard.get("widgets", [])
+            widgets.append(widget.model_dump())
+            db_manager.update_dashboard(dashboard_id, {"widgets": widgets})
         return widget
     except HTTPException:
         raise
@@ -275,20 +298,23 @@ def update_dashboard_widget(
 ):
     """更新仪表盘组件"""
     try:
-        db_manager = get_db_manager()
-        dashboard = db_manager.get_dashboard(dashboard_id)
-        if not dashboard:
-            raise HTTPException(status_code=404, detail="Dashboard not found")
+        lock = _get_dashboard_lock(dashboard_id)
+        with lock:
+            db_manager = get_db_manager()
+            dashboard = db_manager.get_dashboard(dashboard_id)
+            if not dashboard:
+                raise HTTPException(status_code=404, detail="Dashboard not found")
 
-        widgets = dashboard.get("widgets", [])
-        widget_index = next((i for i, w in enumerate(widgets) if w.get("id") == widget_id), -1)
-        if widget_index == -1:
-            raise HTTPException(status_code=404, detail="Widget not found")
+            widgets = dashboard.get("widgets", [])
+            widget_index = next((i for i, w in enumerate(widgets) if w.get("id") == widget_id), -1)
+            if widget_index == -1:
+                raise HTTPException(status_code=404, detail="Widget not found")
 
-        widget_data = widget.model_dump(exclude_unset=True)
-        widgets[widget_index] = {**widgets[widget_index], **widget_data}
-        db_manager.update_dashboard(dashboard_id, {"widgets": widgets})
-        return widgets[widget_index]
+            widget_data = widget.model_dump(exclude_unset=True)
+            widgets[widget_index] = {**widgets[widget_index], **widget_data}
+            db_manager.update_dashboard(dashboard_id, {"widgets": widgets})
+            result = widgets[widget_index]
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -303,18 +329,20 @@ def delete_dashboard_widget(
 ):
     """删除仪表盘组件"""
     try:
-        db_manager = get_db_manager()
-        dashboard = db_manager.get_dashboard(dashboard_id)
-        if not dashboard:
-            raise HTTPException(status_code=404, detail="Dashboard not found")
+        lock = _get_dashboard_lock(dashboard_id)
+        with lock:
+            db_manager = get_db_manager()
+            dashboard = db_manager.get_dashboard(dashboard_id)
+            if not dashboard:
+                raise HTTPException(status_code=404, detail="Dashboard not found")
 
-        widgets = dashboard.get("widgets", [])
-        widget_index = next((i for i, w in enumerate(widgets) if w.get("id") == widget_id), -1)
-        if widget_index == -1:
-            raise HTTPException(status_code=404, detail="Widget not found")
+            widgets = dashboard.get("widgets", [])
+            widget_index = next((i for i, w in enumerate(widgets) if w.get("id") == widget_id), -1)
+            if widget_index == -1:
+                raise HTTPException(status_code=404, detail="Widget not found")
 
-        widgets.pop(widget_index)
-        db_manager.update_dashboard(dashboard_id, {"widgets": widgets})
+            widgets.pop(widget_index)
+            db_manager.update_dashboard(dashboard_id, {"widgets": widgets})
         return {"message": "Widget deleted successfully"}
     except HTTPException:
         raise

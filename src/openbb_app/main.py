@@ -8,6 +8,7 @@ from openbb_app.routes.dashboard import dashboard_router
 from openbb_app.routes.equity_cn import equity_cn_router
 from openbb_app.routes.portfolio import portfolio_router
 from openbb_app.routes.agents import agent_router
+from openbb_app.routes.proxy import proxy_router
 from importlib.metadata import version, PackageNotFoundError
 
 setup_logger(__name__)
@@ -145,6 +146,11 @@ app.include_router(
 
 app.include_router(
     dashboard_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    proxy_router,
     prefix="/api/v1",
 )
 add_template("portfolio")

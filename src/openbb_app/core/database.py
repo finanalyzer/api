@@ -108,6 +108,7 @@ class DatabaseManager:
             name TEXT NOT NULL,
             description TEXT,
             widgets TEXT DEFAULT '[]',
+            tabs TEXT DEFAULT '[]',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -119,6 +120,7 @@ class DatabaseManager:
         # 迁移：为现有数据库添加新列
         self._migrate_transactions_table(cursor)
         self._migrate_portfolio_stocks_table(cursor)
+        self._migrate_dashboards_table(cursor)
         
         # 应用优化配置
         self._apply_optimizations(conn)
@@ -184,7 +186,20 @@ class DatabaseManager:
                 logger.info("Successfully migrated portfolio_stocks table to new schema")
         except Exception as e:
             logger.warning(f"Migration warning for portfolio_stocks: {e}")
-    
+
+    def _migrate_dashboards_table(self, cursor):
+        """迁移仪表盘表，添加 tabs 列"""
+        try:
+            cursor.execute("PRAGMA table_info(dashboards)")
+            columns = [column[1] for column in cursor.fetchall()]
+
+            if 'tabs' not in columns:
+                logger.info("Adding tabs column to dashboards table")
+                cursor.execute("ALTER TABLE dashboards ADD COLUMN tabs TEXT DEFAULT '[]'")
+                logger.info("Successfully added tabs column to dashboards table")
+        except Exception as e:
+            logger.warning(f"Migration warning for dashboards tabs: {e}")
+
     def _apply_optimizations(self, conn):
         """应用数据库优化配置"""
         cursor = conn.cursor()
@@ -969,6 +984,7 @@ class DatabaseManager:
         for row in rows:
             dashboard = dict(row)
             dashboard['widgets'] = json.loads(dashboard.get('widgets', '[]'))
+            dashboard['tabs'] = json.loads(dashboard.get('tabs', '[]'))
             dashboards.append(dashboard)
         
         return dashboards
@@ -988,6 +1004,7 @@ class DatabaseManager:
         if row:
             dashboard = dict(row)
             dashboard['widgets'] = json.loads(dashboard.get('widgets', '[]'))
+            dashboard['tabs'] = json.loads(dashboard.get('tabs', '[]'))
             return dashboard
         return None
     
@@ -1002,13 +1019,14 @@ class DatabaseManager:
         
         sql = """
         INSERT INTO dashboards 
-            (id, name, description, widgets, created_at, updated_at)
+            (id, name, description, widgets, tabs, created_at, updated_at)
         VALUES 
-            (?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             description = excluded.description,
             widgets = excluded.widgets,
+            tabs = excluded.tabs,
             updated_at = excluded.updated_at
         """
         
@@ -1018,6 +1036,7 @@ class DatabaseManager:
                 dashboard_data['name'],
                 dashboard_data.get('description'),
                 json.dumps(dashboard_data.get('widgets', [])),
+                json.dumps(dashboard_data.get('tabs', [])),
                 now,
                 now
             ))
@@ -1045,6 +1064,9 @@ class DatabaseManager:
         for key, value in dashboard_data.items():
             if key == 'widgets':
                 set_clauses.append("widgets = ?")
+                params.append(json.dumps(value))
+            elif key == 'tabs':
+                set_clauses.append("tabs = ?")
                 params.append(json.dumps(value))
             elif key != 'id':
                 set_clauses.append(f"{key} = ?")

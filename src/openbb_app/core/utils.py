@@ -141,52 +141,192 @@ def prompt_for_api_key(provider: str) -> Optional[str]:
                 return None
 
 
+def save_api_key_to_credentials(provider: str, api_key: str) -> Optional[str]:
+    """
+    Save API key to OpenBB credentials.
+
+    Args:
+        provider: The provider name ('akshare' or 'tushare')
+        api_key: The API key to save
+
+    Returns:
+        The API key if saved successfully, None otherwise
+    """
+    from openbb import obb
+    from openbb_core.app.service.user_service import UserService
+
+    try:
+        u = UserService.read_from_file()
+        if provider == "akshare":
+            u.credentials.akshare_api_key = api_key
+            obb.user.credentials.akshare_api_key = api_key
+        elif provider == "tushare":
+            u.credentials.tushare_api_key = api_key
+            obb.user.credentials.tushare_api_key = api_key
+        UserService.write_to_file(u)
+        print(f"✅ {provider.capitalize()} API key saved to OpenBB credentials.")
+        return api_key
+    except Exception as e:
+        logger.error(f"Failed to save {provider} API key: {e}")
+        print(f"❌ Failed to save {provider} API key: {e}")
+        return None
+
+
+def _get_credential_attr_name(provider: str) -> str:
+    """Get the attribute name for a provider's API key in credentials."""
+    return f"{provider}_api_key"
+
+
+def _get_env_var_name(provider: str) -> str:
+    """Get the environment variable name for a provider's API key."""
+    return f"{provider.upper()}_API_KEY"
+
+
+def get_api_key_with_priority(
+    provider: str, obb_user_credentials
+) -> Tuple[Optional[str], str]:
+    """
+    Retrieve API key using priority-based mechanism.
+
+    Priority order:
+    1. Environment variables (if valid, store in obb.user.credentials)
+    2. obb.user.credentials storage
+    3. None (if not found in either location)
+
+    Args:
+        provider: The provider name ('akshare' or 'tushare')
+        obb_user_credentials: Mock or real obb.user.credentials object
+
+    Returns:
+        Tuple of (api_key, source) where source is one of:
+        - 'env': Key was retrieved from environment variable
+        - 'credentials': Key was retrieved from obb.user.credentials
+        - 'not_found': Key was not found in either location
+    """
+    import os
+
+    env_var_name = _get_env_var_name(provider)
+    cred_attr_name = _get_credential_attr_name(provider)
+
+    logger.debug(f"Retrieving API key for '{provider}' using priority-based mechanism.")
+
+    # Step 1: Try environment variables first
+    env_key = None
+    try:
+        env_key = os.environ.get(env_var_name, "").strip()
+        if env_key:
+            is_valid, error_msg = validate_api_key(env_key, provider)
+            if is_valid:
+                logger.info(
+                    f"Valid {provider.capitalize()} API key found in environment variable '{env_var_name}'."
+                )
+                # Store in obb.user.credentials for persistence
+                _store_api_key_in_credentials(provider, env_key)
+                return env_key, "env"
+            else:
+                logger.warning(
+                    f"Invalid {provider.capitalize()} API key in environment variable '{env_var_name}': {error_msg}"
+                )
+        else:
+            logger.debug(
+                f"Environment variable '{env_var_name}' is not set or empty."
+            )
+    except Exception as e:
+        logger.error(f"Error reading {env_var_name} from environment: {e}")
+
+    # Step 2: Try obb.user.credentials storage
+    try:
+        cred_key = getattr(obb_user_credentials, cred_attr_name, None)
+        if cred_key:
+            key_value = cred_key.get_secret_value()
+            if key_value and key_value.strip():
+                is_valid, error_msg = validate_api_key(key_value, provider)
+                if is_valid:
+                    logger.info(
+                        f"Valid {provider.capitalize()} API key found in obb.user.credentials."
+                    )
+                    return key_value, "credentials"
+                else:
+                    logger.warning(
+                        f"Invalid {provider.capitalize()} API key in obb.user.credentials: {error_msg}"
+                    )
+    except Exception as e:
+        logger.debug(f"Error reading {cred_attr_name} from obb.user.credentials: {e}")
+
+    # Step 3: Key not found - generate detailed error log
+    logger.error(
+        f"{provider.capitalize()} API key not found. "
+        f"Checked locations: (1) Environment variable '{env_var_name}', "
+        f"(2) obb.user.credentials['{cred_attr_name}']"
+    )
+
+    return None, "not_found"
+
+
+def _store_api_key_in_credentials(provider: str, api_key: str) -> bool:
+    """
+    Atomically store API key in obb.user.credentials.
+
+    Args:
+        provider: The provider name ('akshare' or 'tushare')
+        api_key: The API key to store
+
+    Returns:
+        True if stored successfully, False otherwise
+    """
+    from openbb import obb
+    from openbb_core.app.service.user_service import UserService
+
+    cred_attr_name = _get_credential_attr_name(provider)
+
+    try:
+        # Read current state
+        u = UserService.read_from_file()
+
+        # Update credentials
+        setattr(u.credentials, cred_attr_name, api_key)
+
+        # Atomic write: write to file first, then update in-memory
+        UserService.write_to_file(u)
+        setattr(obb.user.credentials, cred_attr_name, api_key)
+
+        logger.info(f"API key stored in obb.user.credentials['{cred_attr_name}'].")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to store API key in credentials: {e}")
+        return False
+
+
 def configure_api_keys() -> Tuple[Optional[str], Optional[str]]:
     """
     Check and configure API keys for akshare and tushare.
-    First attempts to retrieve keys from environment variables,
-    then prompts user for missing keys and stores them in OpenBB credentials.
+
+    Priority-based retrieval mechanism:
+    1. Environment variables (if valid, automatically store in obb.user.credentials)
+    2. obb.user.credentials storage
+    3. Prompt user for missing keys and store them in OpenBB credentials
+
+    Each retrieval step includes:
+    - Validation checks for API key format
+    - Detailed logging at each stage
+    - Proper error handling
 
     Returns:
         Tuple of (akshare_api_key, tushare_api_key) - None if not configured
     """
-    import os
     from openbb import obb
-    from openbb_core.app.service.user_service import UserService
 
-    akshare_key = None
-    tushare_key = None
+    print("\n🔍 Checking API key configuration using priority-based mechanism...")
 
-    print("\n🔍 Checking API key configuration...")
+    # Use priority-based retrieval for each provider
+    akshare_key, akshare_source = get_api_key_with_priority(
+        "akshare", obb.user.credentials
+    )
+    tushare_key, tushare_source = get_api_key_with_priority(
+        "tushare", obb.user.credentials
+    )
 
-    try:
-        akshare_key = obb.user.credentials.akshare_api_key.get_secret_value()
-    except Exception:
-        akshare_key = None
-
-    try:
-        tushare_key = obb.user.credentials.tushare_api_key.get_secret_value()
-    except Exception:
-        tushare_key = None
-
-    if not akshare_key:
-        try:
-            akshare_key = os.environ.get("AKSHARE_API_KEY", "").strip()
-            if akshare_key:
-                print("✅ AkShare API key found in environment variables.")
-        except Exception as e:
-            logger.error(f"Error reading AKSHARE_API_KEY from environment: {e}")
-            akshare_key = None
-
-    if not tushare_key:
-        try:
-            tushare_key = os.environ.get("TUSHARE_API_KEY", "").strip()
-            if tushare_key:
-                print("✅ Tushare API key found in environment variables.")
-        except Exception as e:
-            logger.error(f"Error reading TUSHARE_API_KEY from environment: {e}")
-            tushare_key = None
-
+    # Collect missing keys
     missing_keys = []
     if not akshare_key:
         missing_keys.append("akshare")
@@ -203,35 +343,24 @@ def configure_api_keys() -> Tuple[Optional[str], Optional[str]]:
         api_key = prompt_for_api_key(provider)
 
         if api_key:
-            try:
-                if provider == "akshare":
-                    u = UserService.read_from_file()
-                    u.credentials.akshare_api_key = api_key
-                    UserService.write_to_file(u)
-                    obb.user.credentials.akshare_api_key = api_key
-                    akshare_key = api_key
-                    print(f"✅ AkShare API key saved to OpenBB credentials.")
-                elif provider == "tushare":
-                    u = UserService.read_from_file()
-                    u.credentials.tushare_api_key = api_key
-                    UserService.write_to_file(u)
-                    obb.user.credentials.tushare_api_key = api_key
-                    tushare_key = api_key
-                    print(f"✅ Tushare API key saved to OpenBB credentials.")
-            except Exception as e:
-                logger.error(f"Failed to save {provider} API key: {e}")
-                print(f"❌ Failed to save {provider} API key: {e}")
+            saved_key = save_api_key_to_credentials(provider, api_key)
+            if provider == "akshare":
+                akshare_key = saved_key
+            elif provider == "tushare":
+                tushare_key = saved_key
         else:
             if provider == "akshare":
                 logger.warning(
-                    "AkShare API key not provided. AkShare service will be unavailable."
+                    "AkShare API key not provided. "
+                    "AkShare service will be unavailable."
                 )
-                print(f"\n⚠️  AkShare service will be unavailable.")
+                print("\n⚠️  AkShare service will be unavailable.")
             elif provider == "tushare":
                 logger.warning(
-                    "Tushare API key not provided. Tushare service will be unavailable."
+                    "Tushare API key not provided. "
+                    "Tushare service will be unavailable."
                 )
-                print(f"\n⚠️  Tushare service will be unavailable.")
+                print("\n⚠️  Tushare service will be unavailable.")
 
     print(f"\n{'='*60}")
     print("API Key Configuration Summary:")

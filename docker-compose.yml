@@ -9,6 +9,7 @@ services:
       - "8001:8001"
       - "4096:4096"
       - "8899:8899"
+      - "8787:8787"
     volumes:
       - .:/app
       - /app/.venv
@@ -22,6 +23,8 @@ services:
       - ./.env:/home/appuser/.vibe-trading/.env:ro
       # Bind-mount Vibe-Trading source code for development
       - ../Vibe-Trading:/opt/vibe-trading
+      # Bind-mount workspace-mcp source code for development
+      - ../workspace-mcp:/opt/workspace-mcp
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1

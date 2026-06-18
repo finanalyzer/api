@@ -43,6 +43,8 @@ COPY pyproject.toml README.md ./
 COPY src/ src/
 RUN uv pip install --system -e . --no-cache
 
+# Note: workspace-mcp is installed at runtime via bind mount to /opt/workspace-mcp
+
 # Runtime stage - minimal image with only runtime dependencies
 FROM python:3.13-slim-bookworm
 
@@ -102,7 +104,7 @@ RUN mkdir -p /etc/opencode && \
 
 # Create appuser and setup permissions
 RUN useradd --create-home --shell /bin/bash appuser && \
-    mkdir -p /home/appuser/.config/opencode /home/appuser/.vibe-trading /opt/vibe-trading /var/log/supervisor /home/appuser/OpenBBUserData/cache/openbb_akshare /app/.venv && \
+    mkdir -p /home/appuser/.config/opencode /home/appuser/.vibe-trading /home/appuser/.cache/uv/wheels-v5 /home/appuser/.cache/uv/simple-v18 /opt/vibe-trading /var/log/supervisor /home/appuser/OpenBBUserData/cache/openbb_akshare /app/.venv && \
     cp /etc/opencode/config.json /home/appuser/.config/opencode/config.json && \
     chown -R appuser:appuser /app /home/appuser ${VIBE_TRADING_AGENT_DIR} /opt/vibe-trading /var/log/supervisor && \
     chmod -R 777 /app/.venv
@@ -112,6 +114,6 @@ COPY docs/equity.db /home/appuser/OpenBBUserData/cache/openbb_akshare/equity.db
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN chown appuser:appuser /home/appuser/OpenBBUserData/cache/openbb_akshare/equity.db
 
-EXPOSE 8001 4096 8899
+EXPOSE 8001 4096 8899 8787
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

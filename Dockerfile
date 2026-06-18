@@ -98,9 +98,8 @@ COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app /app
 
-# Create OpenCode configuration
-RUN mkdir -p /etc/opencode && \
-    python -c "import os, json; print(json.dumps({'\$schema': 'https://opencode.ai/config.json', 'mcp': {'vibe-trading': {'type': 'local', 'command': ['vibe-trading-mcp'], 'enabled': True, 'environment': {'VIBE_TRADING_HOME': os.environ['VIBE_TRADING_HOME']}}}}, indent=2))" > /etc/opencode/config.json
+# Copy OpenCode configuration
+COPY docs/config.json /etc/opencode/config.json
 
 # Create appuser and setup permissions
 RUN useradd --create-home --shell /bin/bash appuser && \
@@ -108,6 +107,18 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     cp /etc/opencode/config.json /home/appuser/.config/opencode/config.json && \
     chown -R appuser:appuser /app /home/appuser ${VIBE_TRADING_AGENT_DIR} /opt/vibe-trading /var/log/supervisor && \
     chmod -R 777 /app/.venv
+
+# Create MCP configuration file for agents
+RUN cat > /home/appuser/.mcp.json << 'EOF'
+{
+    "mcpServers": {
+        "workspace_mcp": {
+            "type": "http",
+            "url": "http://127.0.0.1:8787/mcp"
+        }
+    }
+}
+EOF
 
 # Copy remaining files
 COPY docs/equity.db /home/appuser/OpenBBUserData/cache/openbb_akshare/equity.db

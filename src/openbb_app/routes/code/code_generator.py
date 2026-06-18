@@ -299,10 +299,10 @@ class OpenCodeGenerator(CodeGenerator):
 
                 async def _create_new_session() -> Optional[str]:
                     """Create a fresh OpenCode session, returning its ID or None on failure."""
-                    # The OpenCode API expects just the model name without the provider prefix
-                    # e.g., "deepseek-v4-flash-free" not "opencode/deepseek-v4-flash-free"
-                    api_model_id = settings.default_model.split("/")[-1]
-                    logger.info(f"Creating session with model: {settings.default_model} (API: {api_model_id})")
+                    # The OpenCode API expects the full model ID with provider prefix
+                    # e.g., "opencode/deepseek-v4-flash-free"
+                    api_model_id = settings.default_model
+                    logger.info(f"Creating session with model: {api_model_id}")
                     create_resp = await client.post(
                         f"{base_url}/session", json={"modelID": api_model_id}
                     )

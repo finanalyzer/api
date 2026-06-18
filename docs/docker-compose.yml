@@ -37,16 +37,21 @@ services:
       start_period: 60s
     restart: unless-stopped
 
-  openbb-app-ghcr:
-    image: ghcr.io/shugaoye/openbb-app:latest
+  openbb-app1:
+    image: openbb-app-openbb-app:latest
     ports:
       - "8001:8001"
       - "4096:4096"
       - "8899:8899"
+      - "8787:8787"
     volumes:
       - ../openbb-app:/app
       - /app/.venv
       - ./.env:/home/appuser/.vibe-trading/.env:ro
+      # Bind-mount Vibe-Trading source code for development
+      - ../Vibe-Trading:/opt/vibe-trading
+      # Bind-mount workspace-mcp source code for development
+      - ../workspace-mcp:/opt/workspace-mcp
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1

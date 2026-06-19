@@ -536,6 +536,11 @@ def create_stock(stock: StockCreate):
             )
 
         db_manager.add_portfolio_stock(stock_data)
+        
+        # Invalidate cache for this symbol
+        from openbb_app.core.utils import invalidate_stock_quote_cache
+        invalidate_stock_quote_cache(stock.symbol)
+        
         created_stock = db_manager.get_portfolio_stock(stock.symbol)
         if not created_stock:
             raise HTTPException(status_code=500, detail="Failed to create stock")
@@ -562,6 +567,11 @@ def update_stock(
 
         stock_data = stock.model_dump(exclude_unset=True)
         db_manager.update_portfolio_stock(symbol, stock_data)
+        
+        # Invalidate cache for this symbol
+        from openbb_app.core.utils import invalidate_stock_quote_cache
+        invalidate_stock_quote_cache(symbol)
+        
         updated_stock = db_manager.get_portfolio_stock(symbol)
         if not updated_stock:
             raise HTTPException(status_code=500, detail="Failed to update stock")
@@ -602,6 +612,10 @@ def _delete_stock_by_symbol(symbol: str) -> dict:
             status_code=404,
             detail=f"Stock with symbol {normalized_symbol} not found in portfolio",
         )
+    
+    # Invalidate cache for this symbol
+    from openbb_app.core.utils import invalidate_stock_quote_cache
+    invalidate_stock_quote_cache(normalized_symbol)
     
     logger.info(f"Successfully deleted portfolio stock: {normalized_symbol}")
     logger.info(f"Associated transactions deleted: {result['transactions_deleted']}")

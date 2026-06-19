@@ -3,7 +3,7 @@ import random
 import re
 import string
 import time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 from mysharelib.tools import setup_logger
@@ -14,6 +14,29 @@ from .config import config
 
 setup_logger(__name__)
 logger = logging.getLogger(__name__)
+
+# Stock quote cache with TTL (Time-To-Live)
+# Format: {symbol: {data: {...}, timestamp: float}}
+_stock_quote_cache: Dict[str, dict] = {}
+_STOCK_QUOTE_CACHE_TTL = 60  # Cache for 60 seconds
+
+
+def invalidate_stock_quote_cache(symbol: Optional[str] = None) -> None:
+    """
+    Invalidate stock quote cache.
+    
+    Args:
+        symbol: If provided, invalidate only this symbol's cache. 
+                If None, invalidate the entire cache.
+    """
+    global _stock_quote_cache
+    if symbol:
+        if symbol in _stock_quote_cache:
+            del _stock_quote_cache[symbol]
+            logger.info(f"Invalidated cache for symbol: {symbol}")
+    else:
+        _stock_quote_cache.clear()
+        logger.info("Invalidated entire stock quote cache")
 
 
 def validate_api_key(token: str, api_key: str) -> bool:
@@ -456,7 +479,7 @@ def get_quote(symbols: str) -> List[dict]:
 
 def get_stock_quote(symbol: str) -> dict:
     """
-    Get stock quote data from OpenBB API.
+    Get stock quote data from OpenBB API with caching.
 
     Args:
         symbol: Stock symbol
@@ -464,6 +487,15 @@ def get_stock_quote(symbol: str) -> dict:
     Returns:
         Dictionary with financial metrics
     """
+    global _stock_quote_cache
+    
+    # Check cache first
+    now = time.time()
+    cached = _stock_quote_cache.get(symbol)
+    if cached and (now - cached["timestamp"]) < _STOCK_QUOTE_CACHE_TTL:
+        logger.debug(f"Using cached quote data for {symbol}")
+        return cached["data"]
+
     from openbb import obb
 
     try:
@@ -487,7 +519,13 @@ def get_stock_quote(symbol: str) -> dict:
             "latest_dividend": extract_value(quote_dict.get("dividend_ttm", 0)),
         }
 
-        logger.info(f"Successfully fetched quote data for {symbol}")
+        # Cache the result
+        _stock_quote_cache[symbol] = {
+            "data": result,
+            "timestamp": now
+        }
+        
+        logger.info(f"Successfully fetched and cached quote data for {symbol}")
         return result
     except Exception as e:
         logger.error(f"Error fetching quote data for {symbol}: {e}")

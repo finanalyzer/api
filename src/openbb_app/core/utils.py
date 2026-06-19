@@ -504,10 +504,10 @@ def get_stock_quote(symbol: str) -> dict:
 def get_symbols(exchange: str = "") -> List[dict]:
     """Get available tickers for OpenBB Workspace widget."""
     result_df = obb.equity.search(provider=config.default_provider).to_dataframe()
-    if exchange == "HKEX":
-        result_df = result_df[result_df["exchange"] == "HKEX"]
-    else:
-        result_df = result_df[result_df["exchange"] != "HKEX"]
+    # if exchange == "HKEX":
+    #     result_df = result_df[result_df["exchange"] == "HKEX"]
+    # else:
+    #     result_df = result_df[result_df["exchange"] != "HKEX"]
     if not result_df.empty:
         equity_list = [
             {

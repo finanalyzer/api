@@ -323,11 +323,9 @@ class TransactionResponse(TransactionBase):
             {
                 "paramName": "symbol",
                 "description": "Filter by stock symbol",
-                "type": "text",
+                "type": "ticker",
                 "value": "600325.SH",
                 "label": "股票代码",
-                "type": "endpoint",
-                "optionsEndpoint": "/v1/portfolio/stocks",
                 "multiSelect": False,
                 "show": True,
             },
@@ -808,11 +806,9 @@ def delete_stock_post(request: StockDeleteRequest):
             {
                 "paramName": "symbol",
                 "description": "Filter by stock symbol",
-                "type": "text",
+                "type": "ticker",
                 "value": "600325.SH",
                 "label": "Symbol",
-                "type": "endpoint",
-                "optionsEndpoint": "/v1/portfolio/stocks",
                 "multiSelect": False,
                 "show": True,
             },
@@ -1109,12 +1105,11 @@ def get_portfolio_symbols():
         "source": "A股",
         "params": [
             {
-                "type": "endpoint",
                 "paramName": "symbol",
+                "type": "ticker",
                 "label": "Symbol",
                 "value": "600325.SH",
                 "description": "Symbol to get company facts",
-                "optionsEndpoint": "/v1/portfolio/stocks",
             }
         ],
     }
@@ -1187,13 +1182,11 @@ def get_cn_key_metrics(symbol: str):
         "source": "A股",
         "params": [
             {
-                "type": "endpoint",
                 "paramName": "symbol",
+                "type": "ticker",
                 "label": "Symbol",
                 "value": "600325.SH",
                 "description": "Stock symbol to get news",
-                "multiSelect": False,
-                "optionsEndpoint": "/v1/portfolio/stocks",
             },
             {
                 "type": "number",

@@ -8,7 +8,7 @@ from fastapi import Query
 from pydantic import BaseModel, Field
 
 from openbb_app.core.database import DatabaseManager
-from openbb_app.core.registry import register_widget
+from openbb_app.core.registry import register_widget, TEMPLATES
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +81,7 @@ class DashboardBase(BaseModel):
     description: Optional[str] = Field(None, description="Dashboard description")
     widgets: List[WidgetBase] = Field(default_factory=list, description="Dashboard widgets")
     tabs: List[TabBase] = Field(default_factory=list, description="Dashboard tabs")
+    groups: List[dict] = Field(default_factory=list, description="Parameter groups")
     created_at: Optional[str] = Field(None, description="Creation timestamp")
     updated_at: Optional[str] = Field(None, description="Update timestamp")
 
@@ -94,6 +95,7 @@ class DashboardUpdate(BaseModel):
     description: Optional[str] = Field(None, description="Dashboard description")
     widgets: Optional[List[WidgetBase]] = Field(None, description="Dashboard widgets")
     tabs: Optional[List[TabBase]] = Field(None, description="Dashboard tabs")
+    groups: Optional[List[dict]] = Field(None, description="Parameter groups")
 
 
 class DashboardResponse(DashboardBase):
@@ -207,6 +209,74 @@ def create_dashboard(dashboard: DashboardCreate):
     except Exception as e:
         logger.error(f"Error creating dashboard: {e}")
         raise HTTPException(status_code=500, detail="Failed to create dashboard")
+
+
+@dashboard_router.post("/dashboard/template/{template_name}", response_model=DashboardResponse)
+def create_dashboard_from_template(template_name: str = FastAPIPath(..., description="Template name")):
+    """从模板创建仪表盘，包含groups配置"""
+    try:
+        db_manager = get_db_manager()
+        
+        if template_name not in TEMPLATES:
+            raise HTTPException(status_code=404, detail=f"Template '{template_name}' not found")
+        
+        template = TEMPLATES[template_name]
+        
+        from uuid import uuid4
+        dashboard_id = str(uuid4())
+        
+        dashboard_data = {
+            'id': dashboard_id,
+            'name': template.get('name', 'New Dashboard'),
+            'description': template.get('description', ''),
+            'widgets': [],
+            'tabs': [],
+            'groups': template.get('groups', [])
+        }
+        
+        tabs = template.get('tabs', {})
+        for tab_id, tab_config in tabs.items():
+            dashboard_data['tabs'].append({
+                'id': tab_config.get('id', tab_id),
+                'name': tab_config.get('name', tab_id),
+                'icon': tab_config.get('icon', '')
+            })
+            
+            layout = tab_config.get('layout', [])
+            for item in layout:
+                widget_id = item.get('i', '')
+                if widget_id:
+                    dashboard_data['widgets'].append({
+                        'id': widget_id,
+                        'type': 'table',
+                        'title': widget_id.replace('/', ' '),
+                        'position': {
+                            'x': item.get('x', 0),
+                            'y': item.get('y', 0),
+                            'w': item.get('w', 10),
+                            'h': item.get('h', 10)
+                        },
+                        'data': {
+                            'widgetId': widget_id,
+                            'groups': item.get('groups', [])
+                        }
+                    })
+        
+        db_manager.add_dashboard(dashboard_data)
+        created_dashboard = db_manager.get_dashboard(dashboard_id)
+        
+        if not created_dashboard:
+            raise HTTPException(status_code=500, detail="Failed to create dashboard from template")
+        
+        logger.info(f"Created dashboard from template '{template_name}' with id: {dashboard_id}")
+        logger.info(f"Dashboard groups: {created_dashboard.get('groups', [])}")
+        
+        return created_dashboard
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating dashboard from template: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create dashboard from template")
 
 
 @dashboard_router.put("/dashboard/{dashboard_id}", response_model=DashboardResponse)

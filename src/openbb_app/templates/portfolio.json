@@ -15,14 +15,16 @@
                     "x": 0,
                     "y": 2,
                     "w": 40,
-                    "h": 14
+                    "h": 14,
+                    "groups": ["Group 1"]
                 },
                 {
                     "i": "portfolio/transactions",
                     "x": 0,
                     "y": 16,
                     "w": 40,
-                    "h": 14
+                    "h": 14,
+                    "groups": ["Group 1"]
                 }
             ]
         },
@@ -36,6 +38,7 @@
                     "y": 2,
                     "w": 13,
                     "h": 21,
+                    "groups": ["Group 1"],
                     "state": {
                         "chartView": {
                             "enabled": false,
@@ -59,6 +62,7 @@
                     "y": 2,
                     "w": 27,
                     "h": 21,
+                    "groups": ["Group 1"],
                     "state": {
                         "params": {
                             "limit": "20"
@@ -95,7 +99,7 @@
     "groups": [
         {
             "name": "Group 1",
-            "type": "endpointParam",
+            "type": "ticker",
             "paramName": "symbol",
             "defaultValue": "600325",
             "widgetIds": [
